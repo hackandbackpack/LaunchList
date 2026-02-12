@@ -316,6 +316,20 @@ setup_application() {
     mkdir -p "$DATA_DIR"
     chmod 755 "$DATA_DIR"
 
+    # Determine source directory - handle running from deploy/ subdirectory
+    local SOURCE_DIR=""
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    if [ -f "./docker-compose.yml" ]; then
+        SOURCE_DIR="$(pwd)"
+    elif [ -f "../docker-compose.yml" ]; then
+        # Running from deploy/ subdirectory
+        SOURCE_DIR="$(cd .. && pwd)"
+    elif [ -f "$SCRIPT_DIR/../docker-compose.yml" ]; then
+        # Script called with full path
+        SOURCE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+    fi
+
     if [ -d "$APP_DIR" ]; then
         log_info "Application directory exists, updating..."
         cd "$APP_DIR"
@@ -324,15 +338,14 @@ setup_application() {
         fi
     else
         log_info "Cloning application..."
-        # If running from a local directory with the files
-        if [ -f "./docker-compose.yml" ]; then
+        if [ -n "$SOURCE_DIR" ]; then
+            log_info "Source directory: $SOURCE_DIR"
             mkdir -p "$APP_DIR"
-            cp -r . "$APP_DIR/"
+            cp -r "$SOURCE_DIR/." "$APP_DIR/"
         else
-            log_error "Please run this script from the ListPull source directory"
-            log_info "Or clone the repository first:"
-            log_info "  git clone https://github.com/yourrepo/listpull.git"
-            log_info "  cd listpull"
+            log_error "Could not find ListPull source files"
+            log_info "Please run this script from the ListPull directory:"
+            log_info "  cd /path/to/listpull"
             log_info "  sudo ./deploy/install.sh"
             exit 1
         fi
