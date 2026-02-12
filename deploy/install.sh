@@ -3,8 +3,10 @@
 # ListPull Installation Script for Linux
 # Supports: Ubuntu/Debian, RHEL/CentOS/Fedora, Arch Linux
 #
-# Usage: curl -sSL https://raw.githubusercontent.com/yourrepo/listpull/main/deploy/install.sh | sudo bash
-#    or: sudo ./install.sh
+# Prerequisites:
+#   1. Copy .env.example to listpull.env
+#   2. Fill in all required fields in listpull.env
+#   3. Run: sudo ./deploy/install.sh
 #
 
 set -e
@@ -20,9 +22,17 @@ NC='\033[0m' # No Color
 APP_NAME="listpull"
 APP_DIR="/opt/listpull"
 DATA_DIR="/var/lib/listpull"
-CONFIG_FILE="$APP_DIR/listpull.env"
 REQUIRED_DOCKER_VERSION="20.10.0"
 REQUIRED_COMPOSE_VERSION="2.0.0"
+
+# Required configuration fields
+REQUIRED_FIELDS=(
+    "JWT_SECRET"
+    "VITE_STORE_NAME"
+    "VITE_STORE_EMAIL"
+    "VITE_STORE_PHONE"
+    "VITE_STORE_ADDRESS"
+)
 
 # Logging functions
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
@@ -69,6 +79,150 @@ version_gte() {
     [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
 }
 
+# Find the source directory (handles running from deploy/ subdirectory)
+find_source_dir() {
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    if [ -f "./docker-compose.yml" ]; then
+        SOURCE_DIR="$(pwd)"
+    elif [ -f "../docker-compose.yml" ]; then
+        SOURCE_DIR="$(cd .. && pwd)"
+    elif [ -f "$SCRIPT_DIR/../docker-compose.yml" ]; then
+        SOURCE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+    else
+        log_error "Could not find ListPull source files"
+        log_info "Please run this script from the ListPull directory:"
+        log_info "  cd /path/to/listpull"
+        log_info "  sudo ./deploy/install.sh"
+        exit 1
+    fi
+
+    CONFIG_FILE="$SOURCE_DIR/listpull.env"
+}
+
+# Validate configuration file
+validate_config() {
+    log_info "Validating configuration file..."
+
+    # Check if config file exists
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo ""
+        log_error "Configuration file not found: $CONFIG_FILE"
+        echo ""
+        echo -e "${YELLOW}Please complete these steps before running the installer:${NC}"
+        echo ""
+        echo "  1. Copy the example configuration:"
+        echo -e "     ${BLUE}cp .env.example listpull.env${NC}"
+        echo ""
+        echo "  2. Edit the configuration file:"
+        echo -e "     ${BLUE}nano listpull.env${NC}"
+        echo ""
+        echo "  3. Fill in all [REQUIRED] fields (see comments in file)"
+        echo ""
+        echo "  4. Run this installer again:"
+        echo -e "     ${BLUE}sudo ./deploy/install.sh${NC}"
+        echo ""
+        exit 1
+    fi
+
+    # Load config file
+    set -a
+    source "$CONFIG_FILE"
+    set +a
+
+    # Check required fields
+    local missing_fields=()
+    local invalid_fields=()
+
+    for field in "${REQUIRED_FIELDS[@]}"; do
+        value="${!field}"
+        if [ -z "$value" ]; then
+            missing_fields+=("$field")
+        fi
+    done
+
+    # Validate JWT_SECRET length
+    if [ -n "$JWT_SECRET" ] && [ ${#JWT_SECRET} -lt 32 ]; then
+        invalid_fields+=("JWT_SECRET (must be at least 32 characters)")
+    fi
+
+    # Validate phone format (should be XXX.XXX.XXXX or similar)
+    if [ -n "$VITE_STORE_PHONE" ]; then
+        # Remove all non-digits and check length
+        phone_digits=$(echo "$VITE_STORE_PHONE" | tr -cd '0-9')
+        if [ ${#phone_digits} -ne 10 ]; then
+            invalid_fields+=("VITE_STORE_PHONE (should be 10 digits, e.g., 555.123.4567)")
+        fi
+    fi
+
+    # Validate email format
+    if [ -n "$VITE_STORE_EMAIL" ]; then
+        if ! echo "$VITE_STORE_EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+            invalid_fields+=("VITE_STORE_EMAIL (invalid email format)")
+        fi
+    fi
+
+    # Report errors
+    if [ ${#missing_fields[@]} -gt 0 ] || [ ${#invalid_fields[@]} -gt 0 ]; then
+        echo ""
+        log_error "Configuration validation failed!"
+        echo ""
+
+        if [ ${#missing_fields[@]} -gt 0 ]; then
+            echo -e "${RED}Missing required fields:${NC}"
+            for field in "${missing_fields[@]}"; do
+                echo "  - $field"
+            done
+            echo ""
+        fi
+
+        if [ ${#invalid_fields[@]} -gt 0 ]; then
+            echo -e "${RED}Invalid fields:${NC}"
+            for field in "${invalid_fields[@]}"; do
+                echo "  - $field"
+            done
+            echo ""
+        fi
+
+        echo -e "${YELLOW}Please edit your configuration file:${NC}"
+        echo -e "  ${BLUE}nano $CONFIG_FILE${NC}"
+        echo ""
+        echo "Then run the installer again."
+        echo ""
+        exit 1
+    fi
+
+    # Sync backend fields if not set
+    if [ -z "$STORE_NAME" ]; then
+        echo "STORE_NAME=\"$VITE_STORE_NAME\"" >> "$CONFIG_FILE"
+    fi
+    if [ -z "$STORE_EMAIL" ]; then
+        echo "STORE_EMAIL=$VITE_STORE_EMAIL" >> "$CONFIG_FILE"
+    fi
+    if [ -z "$STORE_PHONE" ]; then
+        echo "STORE_PHONE=$VITE_STORE_PHONE" >> "$CONFIG_FILE"
+    fi
+    if [ -z "$STORE_ADDRESS" ]; then
+        echo "STORE_ADDRESS=\"$VITE_STORE_ADDRESS\"" >> "$CONFIG_FILE"
+    fi
+
+    log_success "Configuration validated successfully"
+
+    # Show summary
+    echo ""
+    echo -e "${BLUE}Store Configuration:${NC}"
+    echo "  Name:    $VITE_STORE_NAME"
+    echo "  Email:   $VITE_STORE_EMAIL"
+    echo "  Phone:   $VITE_STORE_PHONE"
+    echo "  Address: $VITE_STORE_ADDRESS"
+    if [ -n "$SMTP_HOST" ]; then
+        echo "  Email:   Enabled (SMTP: $SMTP_HOST)"
+    else
+        echo "  Email:   Disabled (no SMTP configured)"
+    fi
+    echo ""
+}
+
 # Check if Docker is installed and meets version requirements
 check_docker() {
     log_info "Checking Docker installation..."
@@ -92,7 +246,6 @@ check_docker() {
 check_docker_compose() {
     log_info "Checking Docker Compose installation..."
 
-    # Check for docker compose (v2) first
     if docker compose version &> /dev/null; then
         COMPOSE_VERSION=$(docker compose version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         if version_gte "$COMPOSE_VERSION" "$REQUIRED_COMPOSE_VERSION"; then
@@ -102,7 +255,6 @@ check_docker_compose() {
         fi
     fi
 
-    # Fall back to docker-compose (v1)
     if command -v docker-compose &> /dev/null; then
         COMPOSE_VERSION=$(docker-compose --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         log_success "Docker Compose $COMPOSE_VERSION installed (legacy)"
@@ -153,7 +305,6 @@ install_docker() {
             ;;
     esac
 
-    # Start and enable Docker
     systemctl start docker
     systemctl enable docker
 
@@ -166,7 +317,7 @@ check_utilities() {
 
     local missing=()
 
-    for util in curl git openssl; do
+    for util in curl git; do
         if ! command -v $util &> /dev/null; then
             missing+=($util)
         fi
@@ -191,140 +342,12 @@ check_utilities() {
     log_success "All required utilities available"
 }
 
-# Generate secure random string
-generate_secret() {
-    openssl rand -hex 32
-}
-
-# Create configuration file interactively
-create_config() {
-    log_info "Setting up configuration..."
-
-    if [ -f "$CONFIG_FILE" ]; then
-        log_warn "Configuration file already exists at $CONFIG_FILE"
-        read -p "Overwrite existing configuration? (y/N): " overwrite
-        if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
-            log_info "Keeping existing configuration"
-            return 0
-        fi
-    fi
-
-    echo ""
-    echo -e "${BLUE}=== Store Configuration ===${NC}"
-    read -p "Store Name [ListPull]: " STORE_NAME
-    STORE_NAME=${STORE_NAME:-ListPull}
-
-    read -p "Store Email [contact@example.com]: " STORE_EMAIL
-    STORE_EMAIL=${STORE_EMAIL:-contact@example.com}
-
-    read -p "Store Phone [555.123.4567]: " STORE_PHONE
-    STORE_PHONE=${STORE_PHONE:-555.123.4567}
-
-    read -p "Store Address [123 Main Street]: " STORE_ADDRESS
-    STORE_ADDRESS=${STORE_ADDRESS:-123 Main Street}
-
-    read -p "Order Number Prefix [LP]: " ORDER_PREFIX
-    ORDER_PREFIX=${ORDER_PREFIX:-LP}
-
-    echo ""
-    echo -e "${BLUE}=== Email Configuration (Optional - press Enter to skip) ===${NC}"
-    read -p "SMTP Host (e.g., smtp.gmail.com): " SMTP_HOST
-
-    if [ -n "$SMTP_HOST" ]; then
-        read -p "SMTP Port [587]: " SMTP_PORT
-        SMTP_PORT=${SMTP_PORT:-587}
-
-        read -p "SMTP Username: " SMTP_USER
-        read -sp "SMTP Password: " SMTP_PASS
-        echo ""
-
-        read -p "From Email [$STORE_EMAIL]: " FROM_EMAIL
-        FROM_EMAIL=${FROM_EMAIL:-$STORE_EMAIL}
-    fi
-
-    # Generate JWT secret
-    JWT_SECRET=$(generate_secret)
-    log_info "Generated secure JWT secret"
-
-    # Write configuration file
-    cat > "$CONFIG_FILE" << EOF
-# ListPull Configuration
-# Generated by install script on $(date)
-
-# ===========================================
-# Server Configuration (Required)
-# ===========================================
-JWT_SECRET=$JWT_SECRET
-PORT=3000
-DATABASE_PATH=./data/listpull.db
-JWT_EXPIRY=7d
-
-# ===========================================
-# Email Configuration
-# ===========================================
-SMTP_HOST=$SMTP_HOST
-SMTP_PORT=${SMTP_PORT:-587}
-SMTP_USER=$SMTP_USER
-SMTP_PASS=$SMTP_PASS
-SMTP_SECURE=false
-FROM_EMAIL=$FROM_EMAIL
-FROM_NAME=$STORE_NAME
-
-# ===========================================
-# Store Branding
-# ===========================================
-VITE_STORE_NAME="$STORE_NAME"
-VITE_STORE_EMAIL=$STORE_EMAIL
-VITE_STORE_PHONE="$STORE_PHONE"
-VITE_STORE_ADDRESS="$STORE_ADDRESS"
-STORE_NAME="$STORE_NAME"
-STORE_EMAIL=$STORE_EMAIL
-STORE_PHONE="$STORE_PHONE"
-STORE_ADDRESS="$STORE_ADDRESS"
-
-# ===========================================
-# Order Configuration
-# ===========================================
-VITE_ORDER_PREFIX=$ORDER_PREFIX
-ORDER_PREFIX=$ORDER_PREFIX
-VITE_ORDER_HOLD_DAYS=7
-
-# ===========================================
-# Limits & Rate Limiting
-# ===========================================
-VITE_MAX_FILE_SIZE_MB=1
-VITE_MAX_DECKLIST_CARDS=500
-VITE_SCRYFALL_RATE_LIMIT_MS=100
-VITE_POKEMON_RATE_LIMIT_MS=200
-VITE_AUTOCOMPLETE_DEBOUNCE_MS=200
-VITE_API_URL=/api
-EOF
-
-    chmod 600 "$CONFIG_FILE"
-    log_success "Configuration saved to $CONFIG_FILE"
-}
-
-# Clone or update the repository
+# Setup application directory
 setup_application() {
     log_info "Setting up application..."
 
-    # Create data directory
     mkdir -p "$DATA_DIR"
     chmod 755 "$DATA_DIR"
-
-    # Determine source directory - handle running from deploy/ subdirectory
-    local SOURCE_DIR=""
-    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-    if [ -f "./docker-compose.yml" ]; then
-        SOURCE_DIR="$(pwd)"
-    elif [ -f "../docker-compose.yml" ]; then
-        # Running from deploy/ subdirectory
-        SOURCE_DIR="$(cd .. && pwd)"
-    elif [ -f "$SCRIPT_DIR/../docker-compose.yml" ]; then
-        # Script called with full path
-        SOURCE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-    fi
 
     if [ -d "$APP_DIR" ]; then
         log_info "Application directory exists, updating..."
@@ -333,19 +356,13 @@ setup_application() {
             git pull origin main || git pull origin master || true
         fi
     else
-        log_info "Cloning application..."
-        if [ -n "$SOURCE_DIR" ]; then
-            log_info "Source directory: $SOURCE_DIR"
-            mkdir -p "$APP_DIR"
-            cp -r "$SOURCE_DIR/." "$APP_DIR/"
-        else
-            log_error "Could not find ListPull source files"
-            log_info "Please run this script from the ListPull directory:"
-            log_info "  cd /path/to/listpull"
-            log_info "  sudo ./deploy/install.sh"
-            exit 1
-        fi
+        log_info "Copying application files..."
+        mkdir -p "$APP_DIR"
+        cp -r "$SOURCE_DIR/." "$APP_DIR/"
     fi
+
+    # Copy config file to app directory
+    cp "$CONFIG_FILE" "$APP_DIR/listpull.env"
 
     cd "$APP_DIR"
     log_success "Application files ready at $APP_DIR"
@@ -357,17 +374,10 @@ start_application() {
 
     cd "$APP_DIR"
 
-    # Ensure config exists
-    if [ ! -f "$CONFIG_FILE" ]; then
-        log_error "Configuration file not found. Run configuration setup first."
-        exit 1
-    fi
-
     # Build and start with env file
     $COMPOSE_CMD --env-file listpull.env down 2>/dev/null || true
     $COMPOSE_CMD --env-file listpull.env up -d --build
 
-    # Wait for health check
     log_info "Waiting for application to start..."
     sleep 5
 
@@ -412,17 +422,14 @@ create_admin_user() {
     log_info "Creating admin user..."
     cd "$APP_DIR"
 
-    $COMPOSE_CMD exec -T app sh -c "ADMIN_PASSWORD='$ADMIN_PASSWORD' node -e \"
-        process.env.ADMIN_PASSWORD = '$ADMIN_PASSWORD';
-        import('./dist/db/seed.js');
-    \"" 2>/dev/null || {
-        # Alternative: run seed outside container
-        docker exec listpull sh -c "cd /app && ADMIN_PASSWORD='$ADMIN_PASSWORD' node dist/db/seed.js" 2>/dev/null || {
-            log_warn "Could not create admin user automatically"
-            log_info "Create admin manually by running inside the container:"
-            log_info "  docker exec -it listpull sh"
-            log_info "  ADMIN_PASSWORD=your-password node dist/db/seed.js"
-        }
+    docker exec listpull sh -c "ADMIN_PASSWORD='$ADMIN_PASSWORD' node dist/db/seed.js" 2>/dev/null && {
+        log_success "Admin user created"
+        echo "  Email: admin@store.com"
+    } || {
+        log_warn "Could not create admin user automatically"
+        log_info "Create admin manually by running:"
+        log_info "  docker exec -it listpull sh"
+        log_info "  ADMIN_PASSWORD=your-password node dist/db/seed.js"
     }
 }
 
@@ -437,7 +444,7 @@ print_success() {
     echo -e "${BLUE}Staff Login:${NC}    http://localhost:3000/staff/login"
     echo -e "${BLUE}Admin Email:${NC}    admin@store.com"
     echo ""
-    echo -e "${BLUE}Configuration:${NC}  $CONFIG_FILE"
+    echo -e "${BLUE}Configuration:${NC}  $APP_DIR/listpull.env"
     echo -e "${BLUE}Data Directory:${NC} $DATA_DIR"
     echo ""
     echo -e "${YELLOW}Useful Commands:${NC}"
@@ -460,8 +467,14 @@ main() {
     detect_distro
 
     echo ""
-    log_info "Starting dependency checks..."
+    log_info "Starting installation..."
     echo ""
+
+    # Find source directory and config file
+    find_source_dir
+
+    # Validate configuration FIRST
+    validate_config
 
     # Check and install dependencies
     check_utilities
@@ -482,23 +495,23 @@ main() {
         exit 1
     fi
 
-    echo ""
     log_success "All dependencies satisfied!"
     echo ""
 
-    # Setup application
+    # Setup and start
+    read -p "Continue with installation? (Y/n): " continue_choice
+    if [[ "$continue_choice" =~ ^[Nn]$ ]]; then
+        echo "Installation cancelled."
+        exit 0
+    fi
+
     setup_application
-    create_config
+    start_application
 
-    echo ""
-    read -p "Start ListPull now? (Y/n): " start_choice
-    if [[ ! "$start_choice" =~ ^[Nn]$ ]]; then
-        start_application
-
-        read -p "Create admin user now? (Y/n): " admin_choice
-        if [[ ! "$admin_choice" =~ ^[Nn]$ ]]; then
-            create_admin_user
-        fi
+    # Create admin user
+    read -p "Create admin user now? (Y/n): " admin_choice
+    if [[ ! "$admin_choice" =~ ^[Nn]$ ]]; then
+        create_admin_user
     fi
 
     print_success

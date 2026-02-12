@@ -7,15 +7,19 @@
 git clone https://github.com/yourrepo/listpull.git
 cd listpull
 
-# Run the installer (installs Docker if needed, guides you through setup)
+# Create and edit configuration
+cp .env.example listpull.env
+nano listpull.env    # Fill in all [REQUIRED] fields
+
+# Run the installer
 sudo ./deploy/install.sh
 ```
 
-That's it! The installer will:
+The installer will:
+- Validate your configuration file
 - Check and install Docker if needed
-- Guide you through configuration
-- Start the application
-- Create your admin account
+- Build and start the application
+- Prompt you to create an admin account
 
 ## Manual Installation
 
