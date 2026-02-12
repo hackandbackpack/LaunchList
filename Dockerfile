@@ -90,18 +90,7 @@ RUN apk del python3 make g++
 COPY --from=backend-builder --chown=nodejs:nodejs /app/server/dist ./dist
 
 # Copy built frontend
-COPY --from=frontend-builder --chown=nodejs:nodejs /app/dist ./dist/public
-RUN mv ./dist/public ../public 2>/dev/null || true
-
-# Move frontend to correct location for server
-RUN mkdir -p /app/dist && \
-    rm -rf /app/dist/public 2>/dev/null || true
-
 COPY --from=frontend-builder --chown=nodejs:nodejs /app/dist /app/public
-
-# Update the server's static file path
-# The server expects frontend at ../../dist relative to compiled server code
-# We'll fix this by ensuring proper directory structure
 
 # Switch to non-root user
 USER nodejs

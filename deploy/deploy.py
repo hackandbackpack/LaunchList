@@ -22,14 +22,14 @@ from pathlib import Path
 CONFIG_FIELDS = [
     # (key, prompt, default, required)
     ("JWT_SECRET", "JWT Secret (min 32 chars)", "", True),
-    ("VITE_STORE_NAME", "Store Name", "ListPull", False),
-    ("VITE_STORE_EMAIL", "Store Email", "contact@example.com", False),
-    ("VITE_STORE_PHONE", "Store Phone (XXX.XXX.XXXX)", "555.123.4567", False),
-    ("VITE_STORE_ADDRESS", "Store Address", "123 Main Street", False),
-    ("VITE_ORDER_PREFIX", "Order Prefix", "LP", False),
-    ("VITE_ORDER_HOLD_DAYS", "Order Hold Days", "7", False),
-    ("VITE_MAX_FILE_SIZE_MB", "Max File Size (MB)", "1", False),
-    ("VITE_MAX_DECKLIST_CARDS", "Max Decklist Cards", "500", False),
+    ("STORE_NAME", "Store Name", "ListPull", True),
+    ("STORE_EMAIL", "Store Email", "contact@example.com", True),
+    ("STORE_PHONE", "Store Phone (XXX.XXX.XXXX)", "555.123.4567", True),
+    ("STORE_ADDRESS", "Store Address", "123 Main Street", True),
+    ("ORDER_PREFIX", "Order Prefix", "LP", False),
+    ("ORDER_HOLD_DAYS", "Order Hold Days", "7", False),
+    ("MAX_FILE_SIZE_MB", "Max File Size (MB)", "1", False),
+    ("MAX_DECKLIST_CARDS", "Max Decklist Cards", "500", False),
     ("SMTP_HOST", "SMTP Host (optional)", "", False),
     ("SMTP_PORT", "SMTP Port", "587", False),
     ("SMTP_USER", "SMTP Username (optional)", "", False),
@@ -345,7 +345,7 @@ def get_server_ip() -> str:
 def print_summary(project_dir: Path, config: dict[str, str]) -> None:
     """Print deployment summary and next steps."""
     ip = get_server_ip()
-    store_name = config.get("VITE_STORE_NAME", "ListPull")
+    store_name = config.get("STORE_NAME", "ListPull")
 
     print(f"""
 {Colors.GREEN}{Colors.BOLD}

@@ -9,42 +9,43 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_STORE_NAME=${VITE_STORE_NAME:-ListPull}
-        - VITE_STORE_EMAIL=${VITE_STORE_EMAIL:-contact@example.com}
-        - VITE_STORE_PHONE=${VITE_STORE_PHONE:-555.123.4567}
-        - VITE_STORE_ADDRESS=${VITE_STORE_ADDRESS:-123 Main Street}
-        - VITE_ORDER_PREFIX=${VITE_ORDER_PREFIX:-LP}
-        - VITE_ORDER_HOLD_DAYS=${VITE_ORDER_HOLD_DAYS:-7}
-        - VITE_MAX_FILE_SIZE_MB=${VITE_MAX_FILE_SIZE_MB:-1}
-        - VITE_MAX_DECKLIST_CARDS=${VITE_MAX_DECKLIST_CARDS:-500}
-        - VITE_SCRYFALL_RATE_LIMIT_MS=${VITE_SCRYFALL_RATE_LIMIT_MS:-100}
-        - VITE_POKEMON_RATE_LIMIT_MS=${VITE_POKEMON_RATE_LIMIT_MS:-200}
-        - VITE_AUTOCOMPLETE_DEBOUNCE_MS=${VITE_AUTOCOMPLETE_DEBOUNCE_MS:-200}
-        - VITE_API_URL=${VITE_API_URL:-/api}
+        # Frontend build args (Vite requires VITE_ prefix)
+        - VITE_STORE_NAME=${STORE_NAME:-ListPull}
+        - VITE_STORE_EMAIL=${STORE_EMAIL:-contact@example.com}
+        - VITE_STORE_PHONE=${STORE_PHONE:-555.123.4567}
+        - VITE_STORE_ADDRESS=${STORE_ADDRESS:-123 Main Street}
+        - VITE_ORDER_PREFIX=${ORDER_PREFIX:-LP}
+        - VITE_ORDER_HOLD_DAYS=${ORDER_HOLD_DAYS:-7}
+        - VITE_MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-1}
+        - VITE_MAX_DECKLIST_CARDS=${MAX_DECKLIST_CARDS:-500}
+        - VITE_SCRYFALL_RATE_LIMIT_MS=${SCRYFALL_RATE_LIMIT_MS:-100}
+        - VITE_POKEMON_RATE_LIMIT_MS=${POKEMON_RATE_LIMIT_MS:-200}
+        - VITE_AUTOCOMPLETE_DEBOUNCE_MS=${AUTOCOMPLETE_DEBOUNCE_MS:-200}
+        - VITE_API_URL=/api
     container_name: listpull
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=${PORT:-3000}
       - DATABASE_PATH=/app/data/listpull.db
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - JWT_EXPIRY=${JWT_EXPIRY:-7d}
-      # SMTP Configuration (optional)
+      # SMTP Configuration
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
       - SMTP_SECURE=${SMTP_SECURE:-false}
       - FROM_EMAIL=${FROM_EMAIL:-}
-      - FROM_NAME=${FROM_NAME:-ListPull}
-      # Store Configuration
-      - STORE_NAME=${VITE_STORE_NAME:-ListPull}
-      - STORE_EMAIL=${VITE_STORE_EMAIL:-}
-      - STORE_PHONE=${VITE_STORE_PHONE:-}
-      - STORE_ADDRESS=${VITE_STORE_ADDRESS:-}
-      - ORDER_PREFIX=${VITE_ORDER_PREFIX:-LP}
+      - FROM_NAME=${STORE_NAME:-ListPull}
+      # Store Configuration (backend)
+      - STORE_NAME=${STORE_NAME:-ListPull}
+      - STORE_EMAIL=${STORE_EMAIL:-}
+      - STORE_PHONE=${STORE_PHONE:-}
+      - STORE_ADDRESS=${STORE_ADDRESS:-}
+      - ORDER_PREFIX=${ORDER_PREFIX:-LP}
     volumes:
       - listpull-data:/app/data
     healthcheck:

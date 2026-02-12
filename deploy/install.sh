@@ -28,10 +28,10 @@ REQUIRED_COMPOSE_VERSION="2.0.0"
 # Required configuration fields
 REQUIRED_FIELDS=(
     "JWT_SECRET"
-    "VITE_STORE_NAME"
-    "VITE_STORE_EMAIL"
-    "VITE_STORE_PHONE"
-    "VITE_STORE_ADDRESS"
+    "STORE_NAME"
+    "STORE_EMAIL"
+    "STORE_PHONE"
+    "STORE_ADDRESS"
 )
 
 # Logging functions
@@ -147,18 +147,18 @@ validate_config() {
     fi
 
     # Validate phone format (should be XXX.XXX.XXXX or similar)
-    if [ -n "$VITE_STORE_PHONE" ]; then
+    if [ -n "$STORE_PHONE" ]; then
         # Remove all non-digits and check length
-        phone_digits=$(echo "$VITE_STORE_PHONE" | tr -cd '0-9')
+        phone_digits=$(echo "$STORE_PHONE" | tr -cd '0-9')
         if [ ${#phone_digits} -ne 10 ]; then
-            invalid_fields+=("VITE_STORE_PHONE (should be 10 digits, e.g., 555.123.4567)")
+            invalid_fields+=("STORE_PHONE (should be 10 digits, e.g., 555.123.4567)")
         fi
     fi
 
     # Validate email format
-    if [ -n "$VITE_STORE_EMAIL" ]; then
-        if ! echo "$VITE_STORE_EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
-            invalid_fields+=("VITE_STORE_EMAIL (invalid email format)")
+    if [ -n "$STORE_EMAIL" ]; then
+        if ! echo "$STORE_EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+            invalid_fields+=("STORE_EMAIL (invalid email format)")
         fi
     fi
 
@@ -192,33 +192,19 @@ validate_config() {
         exit 1
     fi
 
-    # Sync backend fields if not set
-    if [ -z "$STORE_NAME" ]; then
-        echo "STORE_NAME=\"$VITE_STORE_NAME\"" >> "$CONFIG_FILE"
-    fi
-    if [ -z "$STORE_EMAIL" ]; then
-        echo "STORE_EMAIL=$VITE_STORE_EMAIL" >> "$CONFIG_FILE"
-    fi
-    if [ -z "$STORE_PHONE" ]; then
-        echo "STORE_PHONE=$VITE_STORE_PHONE" >> "$CONFIG_FILE"
-    fi
-    if [ -z "$STORE_ADDRESS" ]; then
-        echo "STORE_ADDRESS=\"$VITE_STORE_ADDRESS\"" >> "$CONFIG_FILE"
-    fi
-
     log_success "Configuration validated successfully"
 
     # Show summary
     echo ""
     echo -e "${BLUE}Store Configuration:${NC}"
-    echo "  Name:    $VITE_STORE_NAME"
-    echo "  Email:   $VITE_STORE_EMAIL"
-    echo "  Phone:   $VITE_STORE_PHONE"
-    echo "  Address: $VITE_STORE_ADDRESS"
+    echo "  Name:    $STORE_NAME"
+    echo "  Email:   $STORE_EMAIL"
+    echo "  Phone:   $STORE_PHONE"
+    echo "  Address: $STORE_ADDRESS"
     if [ -n "$SMTP_HOST" ]; then
-        echo "  Email:   Enabled (SMTP: $SMTP_HOST)"
+        echo "  Notifications: Enabled (SMTP: $SMTP_HOST)"
     else
-        echo "  Email:   Disabled (no SMTP configured)"
+        echo "  Notifications: Disabled (no SMTP configured)"
     fi
     echo ""
 }
