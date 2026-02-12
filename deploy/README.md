@@ -30,12 +30,12 @@ That's it! The installer will:
    ```bash
    git clone https://github.com/yourrepo/listpull.git
    cd listpull
-   cp .env.example .env
+   cp .env.example listpull.env
    ```
 
 2. **Edit configuration:**
    ```bash
-   nano .env
+   nano listpull.env
    ```
 
    Required settings:
@@ -45,7 +45,7 @@ That's it! The installer will:
 
 3. **Start the application:**
    ```bash
-   docker compose up -d --build
+   docker compose --env-file listpull.env up -d --build
    ```
 
 4. **Create admin user:**
@@ -62,7 +62,7 @@ That's it! The installer will:
 
 ## Configuration
 
-All configuration is in a single `.env` file. See `.env.example` for all options.
+All configuration is in a single `listpull.env` file. See `.env.example` for all options.
 
 ### Key Settings
 
@@ -118,17 +118,17 @@ CORS_ORIGIN=https://yourdomain.com
 
 ```bash
 # View logs
-docker compose logs -f
+docker compose --env-file listpull.env logs -f
 
 # Restart
-docker compose restart
+docker compose --env-file listpull.env restart
 
 # Stop
-docker compose down
+docker compose --env-file listpull.env down
 
 # Update
 git pull
-docker compose up -d --build
+docker compose --env-file listpull.env up -d --build
 
 # Backup database
 docker cp listpull:/app/data/listpull.db ./backup-$(date +%Y%m%d).db
@@ -170,7 +170,7 @@ ADMIN_PASSWORD=new-password node dist/db/seed.js
 
 ## Files
 
-- `.env` - All configuration (create from .env.example)
+- `listpull.env` - All configuration (create from .env.example)
 - `deploy/install.sh` - Installation script
 - `deploy/uninstall.sh` - Uninstallation script
 - `deploy/nginx.conf` - Nginx reverse proxy config

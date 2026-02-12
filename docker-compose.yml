@@ -1,8 +1,10 @@
 # ListPull Docker Compose Configuration
-# Usage: docker compose up -d --build
+# Usage: docker compose --env-file listpull.env up -d --build
 
 services:
   app:
+    env_file:
+      - listpull.env
     build:
       context: .
       dockerfile: Dockerfile

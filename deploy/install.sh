@@ -20,7 +20,7 @@ NC='\033[0m' # No Color
 APP_NAME="listpull"
 APP_DIR="/opt/listpull"
 DATA_DIR="/var/lib/listpull"
-CONFIG_FILE="$APP_DIR/.env"
+CONFIG_FILE="$APP_DIR/listpull.env"
 REQUIRED_DOCKER_VERSION="20.10.0"
 REQUIRED_COMPOSE_VERSION="2.0.0"
 
@@ -363,12 +363,9 @@ start_application() {
         exit 1
     fi
 
-    # Load config
-    export $(grep -v '^#' "$CONFIG_FILE" | xargs)
-
-    # Build and start
-    $COMPOSE_CMD down 2>/dev/null || true
-    $COMPOSE_CMD up -d --build
+    # Build and start with env file
+    $COMPOSE_CMD --env-file listpull.env down 2>/dev/null || true
+    $COMPOSE_CMD --env-file listpull.env up -d --build
 
     # Wait for health check
     log_info "Waiting for application to start..."
@@ -382,7 +379,7 @@ start_application() {
         sleep 2
     done
 
-    log_warn "Application may still be starting. Check status with: $COMPOSE_CMD logs"
+    log_warn "Application may still be starting. Check status with: $COMPOSE_CMD --env-file listpull.env logs"
 }
 
 # Create initial admin user
@@ -444,15 +441,15 @@ print_success() {
     echo -e "${BLUE}Data Directory:${NC} $DATA_DIR"
     echo ""
     echo -e "${YELLOW}Useful Commands:${NC}"
-    echo "  View logs:      cd $APP_DIR && docker compose logs -f"
-    echo "  Restart:        cd $APP_DIR && docker compose restart"
-    echo "  Stop:           cd $APP_DIR && docker compose down"
-    echo "  Update:         cd $APP_DIR && git pull && docker compose up -d --build"
+    echo "  View logs:      cd $APP_DIR && docker compose --env-file listpull.env logs -f"
+    echo "  Restart:        cd $APP_DIR && docker compose --env-file listpull.env restart"
+    echo "  Stop:           cd $APP_DIR && docker compose --env-file listpull.env down"
+    echo "  Update:         cd $APP_DIR && git pull && docker compose --env-file listpull.env up -d --build"
     echo ""
     echo -e "${YELLOW}For production deployment:${NC}"
     echo "  1. Set up a reverse proxy (nginx) - see deploy/nginx.conf"
     echo "  2. Configure SSL with Let's Encrypt"
-    echo "  3. Update CORS_ORIGIN in .env for your domain"
+    echo "  3. Update CORS_ORIGIN in listpull.env for your domain"
     echo ""
 }
 
