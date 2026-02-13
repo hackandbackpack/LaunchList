@@ -4,6 +4,7 @@ import { createOrder, getOrderByNumberAndEmail, getOrderLineItems } from '../ser
 import { createError } from '../middleware/errorHandler.js';
 import { gameTypes, notifyMethods } from '../db/schema.js';
 import { orderSubmitRateLimiter } from '../middleware/rateLimiter.js';
+import { validateCsrf } from '../middleware/csrf.js';
 
 const router = Router();
 
@@ -28,7 +29,7 @@ const submitOrderSchema = z.object({
 });
 
 // POST /api/orders - Submit a new order (rate limited per IP)
-router.post('/', orderSubmitRateLimiter, async (req, res, next) => {
+router.post('/', orderSubmitRateLimiter, validateCsrf, async (req, res, next) => {
   try {
     const input = submitOrderSchema.parse(req.body);
     const result = await createOrder(input);

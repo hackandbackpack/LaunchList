@@ -122,11 +122,19 @@ export const auth = {
   },
 };
 
+async function getCsrfToken(): Promise<string> {
+  const response = await fetch(`${API_BASE}/csrf-token`);
+  const data = await response.json();
+  return data.token;
+}
+
 // Orders API (public)
 export const orders = {
   async submit(input: SubmitOrderInput): Promise<OrderSubmitResponse> {
+    const csrfToken = await getCsrfToken();
     return apiFetch<OrderSubmitResponse>('/orders', {
       method: 'POST',
+      headers: { 'X-CSRF-Token': csrfToken },
       body: JSON.stringify(input),
     });
   },
