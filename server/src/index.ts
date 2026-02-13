@@ -14,6 +14,7 @@ import notificationsRoutes from './routes/notifications.js';
 import proxyRoutes from './routes/proxy.js';
 import { generateCsrfToken } from './middleware/csrf.js';
 import { startEmailProcessor } from './services/emailQueueService.js';
+import { startScheduler } from './services/schedulerService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -111,4 +112,5 @@ app.use(errorHandler);
 
 app.listen(config.port, () => {
   console.log(`Server running on port ${config.port}`);
+  startScheduler();
 });
