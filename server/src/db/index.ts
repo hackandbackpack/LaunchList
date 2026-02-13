@@ -141,6 +141,14 @@ function createTables() {
     CREATE INDEX IF NOT EXISTS idx_email_queue_status ON email_queue(status);
   `);
 
+  // Add alert deduplication columns (migration-safe)
+  try {
+    sqlite.exec(`ALTER TABLE deck_requests ADD COLUMN stale_alert_sent INTEGER NOT NULL DEFAULT 0`);
+  } catch { /* Column already exists */ }
+  try {
+    sqlite.exec(`ALTER TABLE deck_requests ADD COLUMN pickup_alert_sent INTEGER NOT NULL DEFAULT 0`);
+  } catch { /* Column already exists */ }
+
   // Create indexes
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_deck_requests_order_number ON deck_requests(order_number);

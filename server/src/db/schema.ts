@@ -33,6 +33,8 @@ export const deckRequests = sqliteTable('deck_requests', {
   staffNotes: text('staff_notes'),
   estimatedTotal: real('estimated_total'),
   missingItems: text('missing_items'),
+  staleAlertSent: integer('stale_alert_sent', { mode: 'boolean' }).default(false),
+  pickupAlertSent: integer('pickup_alert_sent', { mode: 'boolean' }).default(false),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

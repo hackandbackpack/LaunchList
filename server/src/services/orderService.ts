@@ -198,7 +198,16 @@ export function updateOrder(orderId: string, updates: UpdateOrderInput): DeckReq
     updatedAt: now,
   };
 
-  if (updates.status !== undefined) updateData.status = updates.status;
+  if (updates.status !== undefined) {
+    updateData.status = updates.status;
+    // Reset alert flags on status transitions
+    if (updates.status === 'in_progress') {
+      updateData.staleAlertSent = false;
+    }
+    if (updates.status === 'picked_up') {
+      updateData.pickupAlertSent = false;
+    }
+  }
   if (updates.staffNotes !== undefined) updateData.staffNotes = updates.staffNotes;
   if (updates.estimatedTotal !== undefined) updateData.estimatedTotal = updates.estimatedTotal;
   if (updates.missingItems !== undefined) updateData.missingItems = updates.missingItems;
