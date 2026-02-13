@@ -86,6 +86,13 @@ RUN npm ci --only=production && \
 # Remove build dependencies after npm ci
 RUN apk del python3 make g++
 
+# Install sqlite3 CLI for backups
+RUN apk add --no-cache sqlite
+
+# Copy backup script
+COPY scripts/backup.sh /app/scripts/backup.sh
+RUN chmod +x /app/scripts/backup.sh
+
 # Copy built server
 COPY --from=backend-builder --chown=nodejs:nodejs /app/server/dist ./dist
 

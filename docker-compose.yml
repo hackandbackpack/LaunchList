@@ -48,6 +48,7 @@ services:
       - ORDER_PREFIX=${ORDER_PREFIX:-LP}
     volumes:
       - listpull-data:/app/data
+      - listpull-backups:/app/data/backups
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -70,3 +71,4 @@ services:
 
 volumes:
   listpull-data:
+  listpull-backups:
