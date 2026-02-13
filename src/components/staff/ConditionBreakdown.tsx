@@ -86,6 +86,8 @@ export function ConditionBreakdown({
   };
 
   const handleClearAll = () => {
+    if (variants.length === 0) return;
+    if (!window.confirm('Clear all condition variants? This cannot be undone.')) return;
     onChange(itemId, []);
     setIsOpen(false);
   };
@@ -260,20 +262,20 @@ export function ConditionBreakdown({
               !isValid && "text-destructive"
             )}>
               <div className="flex items-center gap-2">
-                {quantityDiff !== 0 && (
+                {quantityDiff > 0 ? (
+                  <span className="text-amber-600">
+                    {totalQuantity} of {quantityFound} assigned — {quantityDiff} more to assign
+                  </span>
+                ) : quantityDiff < 0 ? (
                   <>
-                    <AlertCircle className="h-3 w-3" />
-                    <span>
-                      {quantityDiff > 0 
-                        ? `${quantityDiff} more to assign`
-                        : `${Math.abs(quantityDiff)} over limit`
-                      }
+                    <AlertCircle className="h-3 w-3 text-red-600" />
+                    <span className="text-red-600">
+                      {Math.abs(quantityDiff)} over — remove {Math.abs(quantityDiff)} to continue
                     </span>
                   </>
-                )}
-                {quantityDiff === 0 && (
-                  <span className="text-green-500">
-                    ✓ All {quantityFound} assigned
+                ) : (
+                  <span className="text-green-600">
+                    All {quantityFound} assigned
                   </span>
                 )}
               </div>
