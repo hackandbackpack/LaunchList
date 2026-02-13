@@ -56,25 +56,19 @@ export function DecklistInput({
 
   // Parse current line to extract card name
   const parseCurrentLine = useCallback((text: string, cursorPos: number) => {
-    const lines = text.split('\n');
-    let charCount = 0;
-    
-    for (let i = 0; i < lines.length; i++) {
-      const lineEnd = charCount + lines[i].length;
-      if (cursorPos <= lineEnd + i) {
-        setCurrentLineIndex(i);
-        
-        // Extract card name from line (after quantity)
-        const line = lines[i];
-        const match = line.match(/^\s*(\d+)\s*[xX]?\s+(.*)$/);
-        if (match) {
-          return { lineIndex: i, cardName: match[2] };
-        }
-        return { lineIndex: i, cardName: line };
-      }
-      charCount = lineEnd;
+    const textBeforeCursor = text.substring(0, cursorPos);
+    const linesBefore = textBeforeCursor.split('\n');
+    const lineIndex = linesBefore.length - 1;
+    const fullLines = text.split('\n');
+
+    setCurrentLineIndex(lineIndex);
+
+    const line = fullLines[lineIndex] || '';
+    const match = line.match(/^\s*(\d+)\s*[xX]?\s+(.*)$/);
+    if (match) {
+      return { lineIndex, cardName: match[2] };
     }
-    return { lineIndex: 0, cardName: '' };
+    return { lineIndex, cardName: line };
   }, []);
 
   // Fetch autocomplete suggestions
