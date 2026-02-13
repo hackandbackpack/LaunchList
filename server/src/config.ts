@@ -23,9 +23,16 @@ const envSchema = z.object({
 
   // Order Configuration
   ORDER_PREFIX: z.string().default('LP'),
+  ORDER_HOLD_DAYS: z.string().optional().default('7'),
 
   // CORS
   CORS_ORIGIN: z.string().optional(),
+
+  // Discord Notifications
+  DISCORD_WEBHOOK_URL: z.string().url().optional().or(z.literal('')),
+  DISCORD_DAILY_DIGEST_HOUR: z.string().optional().default('10'),
+  DISCORD_DAILY_DIGEST_TIMEZONE: z.string().optional().default('America/New_York'),
+  DISCORD_STALE_ORDER_HOURS: z.string().optional().default('48'),
 });
 
 function loadConfig() {
@@ -61,8 +68,16 @@ function loadConfig() {
     },
 
     orderPrefix: result.data.ORDER_PREFIX,
+    orderHoldDays: parseInt(result.data.ORDER_HOLD_DAYS || '7', 10),
 
     corsOrigin: result.data.CORS_ORIGIN || null,
+
+    discord: {
+      webhookUrl: result.data.DISCORD_WEBHOOK_URL || null,
+      dailyDigestHour: parseInt(result.data.DISCORD_DAILY_DIGEST_HOUR || '10', 10),
+      timezone: result.data.DISCORD_DAILY_DIGEST_TIMEZONE || 'America/New_York',
+      staleOrderHours: parseInt(result.data.DISCORD_STALE_ORDER_HOURS || '48', 10),
+    },
   };
 }
 
