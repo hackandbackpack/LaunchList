@@ -21,7 +21,7 @@ const submitOrderSchema = z.object({
   phone: z.string().trim()
     .min(1, 'Phone is required')
     .max(20)
-    .regex(/^\d{3}[.\-]?\d{3}[.\-]?\d{4}$/),
+    .regex(/^\d{3}[-.]?\d{3}[-.]?\d{4}$/),
   notifyMethod: z.literal('email'),
   game: z.enum(gameTypes),
   format: z.string().trim().max(100).optional(),

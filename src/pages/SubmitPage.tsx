@@ -25,7 +25,7 @@ const submitSchema = z.object({
   phone: z.string().trim()
     .min(1, 'Phone number is required')
     .max(20, 'Phone too long')
-    .regex(/^\d{3}[.\-]?\d{3}[.\-]?\d{4}$/, 'Enter a valid phone number (e.g., 555.867.5309)'),
+    .regex(/^\d{3}[-.]?\d{3}[-.]?\d{4}$/, 'Enter a valid phone number (e.g., 555.867.5309)'),
   notifyMethod: z.literal('email'),
   game: z.enum(['magic', 'onepiece', 'pokemon', 'other']),
   format: z.string().trim().max(100, 'Format too long').optional(),
