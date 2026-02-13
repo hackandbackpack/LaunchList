@@ -357,16 +357,18 @@ export function DeckCardList({ lineItems, game, deckRequestId, customerName, ord
             </Button>
             <Button
               onClick={handleSaveInventory}
-              disabled={saving}
+              disabled={saving || loading}
+              title={loading ? 'Waiting for price data...' : undefined}
               variant="default"
               size="sm"
             >
               {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...</>
+              ) : loading ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading prices...</>
               ) : (
-                <Save className="h-4 w-4 mr-2" />
+                <><Save className="h-4 w-4 mr-2" /> Save Inventory</>
               )}
-              Save Inventory
             </Button>
           </div>
         </div>
