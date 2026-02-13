@@ -23,6 +23,9 @@ const envSchema = z.object({
 
   // Order Configuration
   ORDER_PREFIX: z.string().default('LP'),
+
+  // CORS
+  CORS_ORIGIN: z.string().optional(),
 });
 
 function loadConfig() {
@@ -58,6 +61,8 @@ function loadConfig() {
     },
 
     orderPrefix: result.data.ORDER_PREFIX,
+
+    corsOrigin: result.data.CORS_ORIGIN || null,
   };
 }
 

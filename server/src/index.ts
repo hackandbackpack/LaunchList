@@ -21,28 +21,40 @@ const app = express();
 // Trust proxy (for rate limiting behind reverse proxy)
 app.set('trust proxy', 1);
 
-// CORS configuration - restrict origins in production
-const corsOptions: cors.CorsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? (process.env.CORS_ORIGIN || true) // Allow same-origin in production, or specific origin
-    : true, // Allow all origins in development
+// CORS - restrictive by default
+const corsOrigin = config.corsOrigin || (
+  process.env.NODE_ENV === 'production'
+    ? false  // Deny all cross-origin in production unless configured
+    : true   // Allow all in development
+);
+app.use(cors({
+  origin: corsOrigin,
   credentials: true,
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  maxAge: 86400, // Cache preflight for 24 hours
-};
+}));
 
-// Security headers middleware
+// Security headers
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Content-Security-Policy', [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https://cards.scryfall.io https://assets.tcgdex.net",
+      "connect-src 'self' https://api.scryfall.com",
+      "font-src 'self'",
+      "frame-ancestors 'none'",
+    ].join('; '));
+  }
   next();
 });
 
 // Middleware
-app.use(cors(corsOptions));
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 
