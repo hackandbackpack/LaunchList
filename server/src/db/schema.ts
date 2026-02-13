@@ -77,6 +77,18 @@ export const tokenBlacklist = sqliteTable('token_blacklist', {
   createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
 });
 
+// Audit log
+export const auditLog = sqliteTable('audit_log', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id'),
+  action: text('action').notNull(),
+  entityType: text('entity_type'),
+  entityId: text('entity_id'),
+  details: text('details'),
+  ipAddress: text('ip_address'),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+});
+
 // Parsed condition variant structure
 export interface ConditionVariant {
   condition: string;

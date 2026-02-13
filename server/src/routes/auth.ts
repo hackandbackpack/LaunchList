@@ -9,6 +9,7 @@ import { users, tokenBlacklist } from '../db/schema.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { createError } from '../middleware/errorHandler.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
+import { logAudit } from '../services/auditService.js';
 
 const router = Router();
 
@@ -50,6 +51,7 @@ router.post('/login', authRateLimiter, async (req, res, next) => {
     if (!valid || !user) {
       sqliteDb.prepare(`INSERT INTO login_attempts (email, success) VALUES (?, 0)`)
         .run(email.toLowerCase());
+      logAudit(req, { action: 'auth.login_failed', details: `email: ${email.toLowerCase()}` });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -68,6 +70,8 @@ router.post('/login', authRateLimiter, async (req, res, next) => {
       config.jwtSecret,
       { algorithm: 'HS256', expiresIn: config.jwtExpiry as jwt.SignOptions['expiresIn'] }
     );
+
+    logAudit(req, { action: 'auth.login', entityType: 'user', entityId: user.id });
 
     res.json({
       token,
@@ -96,6 +100,7 @@ router.post('/logout', requireAuth, (req: AuthRequest, res) => {
       .values({ token, expiresAt })
       .run();
   }
+  logAudit(req, { action: 'auth.logout', entityType: 'user', entityId: req.user!.id });
   res.json({ message: 'Logged out' });
 });
 

@@ -13,6 +13,7 @@ import {
   getLineItemsByOrderId,
 } from '../services/orderService.js';
 import { requestStatuses } from '../db/schema.js';
+import { logAudit } from '../services/auditService.js';
 
 const router = Router();
 
@@ -68,6 +69,12 @@ router.patch('/orders/:id', (req, res, next) => {
     }
 
     const updated = updateOrder(id, updates);
+    logAudit(req, {
+      action: 'order.update',
+      entityType: 'order',
+      entityId: id,
+      details: JSON.stringify(updates),
+    });
     res.json({ order: updated });
   } catch (err) {
     next(err);
@@ -100,6 +107,12 @@ router.patch('/orders/:orderId/items/:itemId', (req, res, next) => {
     }
 
     const updated = updateLineItem(itemId, updates);
+    logAudit(req, {
+      action: 'lineitem.update',
+      entityType: 'lineitem',
+      entityId: itemId,
+      details: JSON.stringify(updates),
+    });
     res.json({ lineItem: updated });
   } catch (err) {
     next(err);
@@ -127,6 +140,11 @@ router.delete('/orders/:orderId/items/:itemId', (req, res, next) => {
     return next(createError('Failed to delete line item', 500));
   }
 
+  logAudit(req, {
+    action: 'lineitem.delete',
+    entityType: 'lineitem',
+    entityId: itemId,
+  });
   res.json({ success: true });
 });
 
