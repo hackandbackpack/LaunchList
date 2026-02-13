@@ -1,73 +1,143 @@
-# Welcome to your Lovable project
+# ListPull
 
-## Project info
+A decklist ordering system for trading card game stores. Customers submit decklists online, staff pull singles from inventory, and everyone saves time.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## What It Does
 
-## How can I edit this code?
+**For Customers:**
+- Submit decklists by pasting text or uploading files (.txt, .csv, .dek)
+- Smart parsing handles multiple decklist formats with autocomplete
+- Track order status with an order number and email lookup
+- Get notified when cards are ready for pickup
 
-There are several ways of editing your application.
+**For Staff:**
+- Dashboard with order management, search, and filtering
+- Per-card inventory tracking with quantity found, pricing, and condition variants
+- Magic cards grouped by color identity for faster pulling
+- Auto-fetched reference pricing from Scryfall and Pokemon TCG APIs
+- One-click "Copy Customer Message" generates a ready-to-send pickup summary
+- Role-based access (staff / admin)
 
-**Use Lovable**
+**Supported Games:**
+- Magic: The Gathering (full Scryfall integration, color grouping, pricing)
+- Pokemon TCG (TCGdex API via backend proxy)
+- One Piece TCG
+- Other / generic (text-based)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+**Frontend:** React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, React Router, TanStack Query
 
-**Use your preferred IDE**
+**Backend:** Node.js, Express, TypeScript, Drizzle ORM, SQLite, JWT auth, Nodemailer
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+**Deployment:** Docker (single container), Nginx reverse proxy, Let's Encrypt SSL
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Getting Started
 
-Follow these steps:
+### Local Development
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Requires Node.js 18+ and npm.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+```bash
+git clone https://github.com/hackandbackpack/listpull.git
+cd listpull
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install frontend dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Install server dependencies
+cd server && npm install && cd ..
+
+# Copy and configure environment
+cp .env.example listpull.env
+# Edit listpull.env - fill in required fields (JWT_SECRET, store info)
+
+# Start the dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Frontend runs on the Vite dev server with hot reload. The backend runs separately from the `server/` directory.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Docker Deployment
 
-**Use GitHub Codespaces**
+```bash
+cp .env.example listpull.env
+# Edit listpull.env with your store details
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Build and start
+docker compose --env-file listpull.env up -d --build
 
-## What technologies are used for this project?
+# Create the admin account
+docker exec -it listpull sh
+ADMIN_PASSWORD=your-secure-password node dist/db/seed.js
+exit
+```
 
-This project is built with:
+Access at http://localhost:3000. Staff login at `/staff/login` with `admin@store.com`.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+See [deploy/README.md](deploy/README.md) for production deployment with Nginx, SSL, and the automated installer.
 
-## How can I deploy this project?
+## Configuration
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+All settings live in a single `listpull.env` file. See `.env.example` for the full list.
 
-## Can I connect a custom domain to my Lovable project?
+| Setting | Description | Required |
+|---------|-------------|----------|
+| `JWT_SECRET` | Auth token signing key (min 32 chars). Generate with `openssl rand -hex 32` | Yes |
+| `STORE_NAME` | Store display name | Yes |
+| `STORE_EMAIL` | Contact email | Yes |
+| `STORE_PHONE` | Contact phone (XXX.XXX.XXXX) | Yes |
+| `STORE_ADDRESS` | Store address | Yes |
+| `SMTP_HOST` | SMTP server for email notifications (leave blank to disable) | No |
+| `ORDER_PREFIX` | Order number prefix (default: LP) | No |
+| `ORDER_HOLD_DAYS` | Days to hold pulled cards (default: 7) | No |
 
-Yes, you can!
+## Project Structure
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```
+listpull/
+├── src/                    # Frontend (React)
+│   ├── pages/              # Route pages (Index, Submit, Status, Staff)
+│   ├── components/         # UI components
+│   │   ├── staff/          # Staff-specific (DeckCardList, EditableCardListItem)
+│   │   ├── layout/         # Header, Footer, PageLayout
+│   │   └── ui/             # shadcn/ui base components
+│   ├── hooks/              # useAuth, useScryfallAutocomplete
+│   ├── lib/                # deckParser, scryfall, colorUtils, exportMessage
+│   └── integrations/api/   # API client
+├── server/                 # Backend (Express)
+│   └── src/
+│       ├── routes/         # auth, orders, staff, notifications, proxy
+│       ├── services/       # emailService, orderService
+│       ├── middleware/      # auth, errorHandler, rateLimiter
+│       └── db/             # schema, seed, migrations
+├── deploy/                 # Deployment scripts and configs
+├── docker-compose.yml
+├── Dockerfile
+└── .env.example
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Scripts
+
+```bash
+npm run dev       # Start Vite dev server
+npm run build     # Production build
+npm run preview   # Preview production build
+npm run lint      # Run ESLint
+```
+
+## Management
+
+```bash
+# View logs
+docker compose --env-file listpull.env logs -f
+
+# Restart
+docker compose --env-file listpull.env restart
+
+# Update
+git pull && docker compose --env-file listpull.env up -d --build
+
+# Backup database
+docker cp listpull:/app/data/listpull.db ./backup-$(date +%Y%m%d).db
+```
