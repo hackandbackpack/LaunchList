@@ -49,7 +49,7 @@ npm install
 cd server && npm install && cd ..
 
 # Copy and configure environment
-cp .env.example listpull.env
+cp listpull.env.example listpull.env
 # Edit listpull.env - fill in required fields (JWT_SECRET, store info)
 
 # Start the dev server
@@ -61,7 +61,7 @@ Frontend runs on the Vite dev server with hot reload. The backend runs separatel
 ### Docker Deployment
 
 ```bash
-cp .env.example listpull.env
+cp listpull.env.example listpull.env
 # Edit listpull.env with your store details
 
 # Build and start
@@ -79,7 +79,7 @@ See [deploy/README.md](deploy/README.md) for production deployment with Nginx, S
 
 ## Configuration
 
-All settings live in a single `listpull.env` file. See `.env.example` for the full list.
+All settings live in a single `listpull.env` file. See `listpull.env.example` for the full list.
 
 | Setting | Description | Required |
 |---------|-------------|----------|
@@ -114,7 +114,7 @@ listpull/
 ├── deploy/                 # Deployment scripts and configs
 ├── docker-compose.yml
 ├── Dockerfile
-└── .env.example
+└── listpull.env.example
 ```
 
 ## Scripts

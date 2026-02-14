@@ -8,7 +8,7 @@ git clone https://github.com/yourrepo/listpull.git
 cd listpull
 
 # Create and edit configuration
-cp .env.example listpull.env
+cp listpull.env.example listpull.env
 nano listpull.env    # Fill in all [REQUIRED] fields
 
 # Run the installer
@@ -19,6 +19,7 @@ The installer will:
 - Validate your configuration file
 - Check and install Docker if needed
 - Build and start the application
+- Install nginx and obtain a Let's Encrypt SSL certificate for your domain
 - Prompt you to create an admin account
 
 ## Manual Installation
@@ -34,7 +35,7 @@ The installer will:
    ```bash
    git clone https://github.com/yourrepo/listpull.git
    cd listpull
-   cp .env.example listpull.env
+   cp listpull.env.example listpull.env
    ```
 
 2. **Edit configuration:**
@@ -44,6 +45,7 @@ The installer will:
 
    Required settings:
    - `JWT_SECRET` - Generate with: `openssl rand -hex 32`
+   - `DOMAIN` - Your domain name (e.g., `listpull.blastoffgaming.com`)
    - Store branding (name, email, phone, address)
    - Optional: SMTP settings for email notifications
 
@@ -60,20 +62,21 @@ The installer will:
    ```
 
 5. **Access the application:**
-   - Customer portal: http://localhost:3000
-   - Staff login: http://localhost:3000/staff/login
+   - Customer portal: https://yourdomain.com
+   - Staff login: https://yourdomain.com/staff/login
    - Admin email: admin@store.com
 
 ## Configuration
 
-All configuration is in a single `listpull.env` file. See `.env.example` for all options.
+All configuration is in a single `listpull.env` file. See `listpull.env.example` for all options.
 
 ### Key Settings
 
 | Setting | Description | Required |
 |---------|-------------|----------|
 | `JWT_SECRET` | Secret key for auth tokens (min 32 chars) | Yes |
-| `VITE_STORE_NAME` | Your store name | Yes |
+| `DOMAIN` | Your domain name for HTTPS | Yes |
+| `STORE_NAME` | Your store name | Yes |
 | `SMTP_HOST` | Email server for notifications | No |
 
 ### Email Setup (Gmail)
@@ -90,32 +93,31 @@ Generate an app password at: https://myaccount.google.com/apppasswords
 
 ## Production Deployment
 
-### With Nginx Reverse Proxy
+### SSL & Nginx (Automated)
 
-1. Copy nginx config:
-   ```bash
-   sudo cp deploy/nginx.conf /etc/nginx/sites-available/listpull
-   sudo ln -s /etc/nginx/sites-available/listpull /etc/nginx/sites-enabled/
-   ```
+The installer automatically handles SSL setup:
 
-2. Update server_name in the config to your domain
+1. Installs nginx and certbot if not already present
+2. Obtains a Let's Encrypt certificate for the `DOMAIN` in your config
+3. Deploys the nginx reverse proxy with SSL termination
+4. Sets up automatic certificate renewal via cron/systemd
 
-3. Get SSL certificate:
-   ```bash
-   sudo certbot --nginx -d yourdomain.com
-   ```
+**Prerequisites:**
+- Your server must be reachable at the configured `DOMAIN` on ports 80 and 443
+- DNS must already point to your server's IP address
 
-4. Restart nginx:
-   ```bash
-   sudo systemctl restart nginx
-   ```
+The `CORS_ORIGIN` is auto-set to `https://$DOMAIN` if left empty.
 
-### Environment Variables for Production
+### Manual SSL Setup
 
-Add to your `.env`:
-```env
-NODE_ENV=production
-CORS_ORIGIN=https://yourdomain.com
+If you prefer to manage SSL yourself (without the automated installer), set up nginx manually:
+
+```bash
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/listpull
+sudo ln -s /etc/nginx/sites-available/listpull /etc/nginx/sites-enabled/
+# Edit server_name in the config, then:
+sudo certbot --nginx -d yourdomain.com
+sudo systemctl restart nginx
 ```
 
 ## Management Commands
@@ -158,9 +160,15 @@ docker compose logs
 
 ### Can't connect
 
-Ensure port 3000 is open:
+Ensure ports 80 and 443 are open:
 ```bash
-sudo ufw allow 3000
+sudo ufw allow 80
+sudo ufw allow 443
+```
+
+Verify nginx is running:
+```bash
+sudo systemctl status nginx
 ```
 
 ### Reset admin password
@@ -174,7 +182,7 @@ ADMIN_PASSWORD=new-password node dist/db/seed.js
 
 ## Files
 
-- `listpull.env` - All configuration (create from .env.example)
+- `listpull.env` - All configuration (create from listpull.env.example)
 - `deploy/install.sh` - Installation script
 - `deploy/uninstall.sh` - Uninstallation script
 - `deploy/nginx.conf` - Nginx reverse proxy config

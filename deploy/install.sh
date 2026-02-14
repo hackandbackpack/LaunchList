@@ -4,7 +4,7 @@
 # Supports: Ubuntu/Debian, RHEL/CentOS/Fedora, Arch Linux
 #
 # Prerequisites:
-#   1. Copy .env.example to listpull.env
+#   1. Copy listpull.env.example to listpull.env
 #   2. Fill in all required fields in listpull.env
 #   3. Run: sudo ./deploy/install.sh
 #
@@ -32,6 +32,7 @@ REQUIRED_FIELDS=(
     "STORE_EMAIL"
     "STORE_PHONE"
     "STORE_ADDRESS"
+    "DOMAIN"
 )
 
 # Logging functions
@@ -112,7 +113,7 @@ validate_config() {
         echo -e "${YELLOW}Please complete these steps before running the installer:${NC}"
         echo ""
         echo "  1. Copy the example configuration:"
-        echo -e "     ${BLUE}cp .env.example listpull.env${NC}"
+        echo -e "     ${BLUE}cp listpull.env.example listpull.env${NC}"
         echo ""
         echo "  2. Edit the configuration file:"
         echo -e "     ${BLUE}nano listpull.env${NC}"
@@ -162,6 +163,17 @@ validate_config() {
         fi
     fi
 
+    # Validate DOMAIN format (no protocol, no trailing slash, looks like a hostname)
+    if [ -n "$DOMAIN" ]; then
+        if echo "$DOMAIN" | grep -qE '^https?://'; then
+            invalid_fields+=("DOMAIN (remove http:// or https:// — just the hostname)")
+        elif echo "$DOMAIN" | grep -qE '/$'; then
+            invalid_fields+=("DOMAIN (remove trailing slash)")
+        elif ! echo "$DOMAIN" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}$'; then
+            invalid_fields+=("DOMAIN (invalid domain format, e.g., listpull.example.com)")
+        fi
+    fi
+
     # Report errors
     if [ ${#missing_fields[@]} -gt 0 ] || [ ${#invalid_fields[@]} -gt 0 ]; then
         echo ""
@@ -201,12 +213,233 @@ validate_config() {
     echo "  Email:   $STORE_EMAIL"
     echo "  Phone:   $STORE_PHONE"
     echo "  Address: $STORE_ADDRESS"
+    echo "  Domain:  $DOMAIN"
     if [ -n "$SMTP_HOST" ]; then
         echo "  Notifications: Enabled (SMTP: $SMTP_HOST)"
     else
         echo "  Notifications: Disabled (no SMTP configured)"
     fi
     echo ""
+}
+
+# Auto-set CORS_ORIGIN from DOMAIN if not already configured
+configure_cors_origin() {
+    if [ -z "$CORS_ORIGIN" ] && [ -n "$DOMAIN" ]; then
+        log_info "Setting CORS_ORIGIN to https://$DOMAIN..."
+        CORS_ORIGIN="https://$DOMAIN"
+        # Update the env file so the running container picks it up
+        if grep -q '^CORS_ORIGIN=' "$CONFIG_FILE"; then
+            sed -i "s|^CORS_ORIGIN=.*|CORS_ORIGIN=https://$DOMAIN|" "$CONFIG_FILE"
+        else
+            echo "CORS_ORIGIN=https://$DOMAIN" >> "$CONFIG_FILE"
+        fi
+        log_success "CORS_ORIGIN set to https://$DOMAIN"
+    fi
+}
+
+# Install nginx if not present
+install_nginx() {
+    if command -v nginx &> /dev/null; then
+        log_success "Nginx already installed"
+        return 0
+    fi
+
+    log_info "Installing nginx..."
+
+    case "$DISTRO" in
+        ubuntu|debian)
+            apt-get update
+            apt-get install -y nginx
+            ;;
+        centos|rhel|rocky|almalinux)
+            yum install -y epel-release
+            yum install -y nginx
+            ;;
+        fedora)
+            dnf install -y nginx
+            ;;
+        arch|manjaro)
+            pacman -Sy --noconfirm nginx
+            ;;
+        *)
+            log_error "Unsupported distribution for nginx: $DISTRO"
+            log_info "Please install nginx manually and re-run the installer."
+            exit 1
+            ;;
+    esac
+
+    systemctl start nginx
+    systemctl enable nginx
+
+    log_success "Nginx installed successfully"
+}
+
+# Install certbot and nginx plugin
+install_certbot() {
+    if command -v certbot &> /dev/null; then
+        log_success "Certbot already installed"
+        return 0
+    fi
+
+    log_info "Installing certbot..."
+
+    case "$DISTRO" in
+        ubuntu|debian)
+            apt-get update
+            apt-get install -y certbot python3-certbot-nginx
+            ;;
+        centos|rhel|rocky|almalinux)
+            yum install -y epel-release
+            yum install -y certbot python3-certbot-nginx
+            ;;
+        fedora)
+            dnf install -y certbot python3-certbot-nginx
+            ;;
+        arch|manjaro)
+            pacman -Sy --noconfirm certbot certbot-nginx
+            ;;
+        *)
+            log_error "Unsupported distribution for certbot: $DISTRO"
+            log_info "Please install certbot manually and re-run the installer."
+            exit 1
+            ;;
+    esac
+
+    log_success "Certbot installed successfully"
+}
+
+# Determine the nginx config directory for this distro
+get_nginx_config_paths() {
+    if [ -d /etc/nginx/sites-available ]; then
+        # Debian/Ubuntu style
+        NGINX_CONF_DIR="/etc/nginx/sites-available"
+        NGINX_ENABLED_DIR="/etc/nginx/sites-enabled"
+        NGINX_LINK_STYLE="symlink"
+    else
+        # RHEL/Arch style
+        NGINX_CONF_DIR="/etc/nginx/conf.d"
+        NGINX_ENABLED_DIR=""
+        NGINX_LINK_STYLE="direct"
+    fi
+}
+
+# Set up SSL certificates and nginx reverse proxy
+setup_ssl() {
+    log_info "Setting up SSL and nginx reverse proxy for $DOMAIN..."
+
+    get_nginx_config_paths
+    mkdir -p /var/www/certbot
+
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local TEMPLATE="$SOURCE_DIR/deploy/nginx.conf"
+
+    if [ ! -f "$TEMPLATE" ]; then
+        log_error "Nginx config template not found at $TEMPLATE"
+        exit 1
+    fi
+
+    # --- Phase 1: Deploy HTTP-only config for ACME challenge ---
+    log_info "Deploying temporary HTTP config for certificate verification..."
+
+    local TEMP_CONF
+    if [ "$NGINX_LINK_STYLE" = "symlink" ]; then
+        TEMP_CONF="$NGINX_CONF_DIR/listpull"
+    else
+        TEMP_CONF="$NGINX_CONF_DIR/listpull.conf"
+    fi
+
+    # Write a minimal HTTP-only config for the ACME challenge
+    cat > "$TEMP_CONF" <<NGINX_HTTP
+# Temporary HTTP-only config for Let's Encrypt verification
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMAIN;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 503;
+    }
+}
+NGINX_HTTP
+
+    # Enable the site (Debian/Ubuntu symlink style)
+    if [ "$NGINX_LINK_STYLE" = "symlink" ]; then
+        ln -sf "$TEMP_CONF" "$NGINX_ENABLED_DIR/listpull"
+        # Remove default site if it would conflict on port 80
+        rm -f "$NGINX_ENABLED_DIR/default"
+    fi
+
+    nginx -t || {
+        log_error "Nginx configuration test failed"
+        exit 1
+    }
+    systemctl reload nginx
+
+    # --- Phase 2: Obtain SSL certificate ---
+    log_info "Requesting SSL certificate from Let's Encrypt..."
+
+    certbot certonly \
+        --webroot \
+        -w /var/www/certbot \
+        -d "$DOMAIN" \
+        --non-interactive \
+        --agree-tos \
+        -m "$STORE_EMAIL" || {
+        log_error "Failed to obtain SSL certificate"
+        log_info "Ensure your server is reachable at $DOMAIN on port 80"
+        log_info "Check DNS records and firewall rules, then re-run the installer."
+        exit 1
+    }
+
+    log_success "SSL certificate obtained for $DOMAIN"
+
+    # --- Phase 3: Deploy full SSL config ---
+    log_info "Deploying full nginx SSL configuration..."
+
+    cp "$TEMPLATE" "$TEMP_CONF"
+    sed -i "s/listpull\.yourdomain\.com/$DOMAIN/g" "$TEMP_CONF"
+
+    # Enable the site (already symlinked for Debian/Ubuntu)
+    nginx -t || {
+        log_error "Full nginx configuration test failed"
+        exit 1
+    }
+    systemctl reload nginx
+
+    log_success "Nginx reverse proxy configured with SSL"
+
+    # --- Phase 4: Set up auto-renewal ---
+    setup_certbot_renewal
+
+    log_success "SSL setup complete — https://$DOMAIN is ready"
+}
+
+# Configure certbot auto-renewal
+setup_certbot_renewal() {
+    log_info "Setting up automatic certificate renewal..."
+
+    # Certbot usually installs a systemd timer or cron job automatically.
+    # Verify it exists; if not, create one.
+    if systemctl list-timers | grep -q certbot; then
+        log_success "Certbot renewal timer already active"
+        return 0
+    fi
+
+    if [ -f /etc/cron.d/certbot ]; then
+        log_success "Certbot renewal cron already configured"
+        return 0
+    fi
+
+    # Create a cron job as fallback
+    echo '0 3 * * * root certbot renew --quiet --deploy-hook "systemctl reload nginx"' \
+        > /etc/cron.d/listpull-certbot-renew
+    chmod 644 /etc/cron.d/listpull-certbot-renew
+
+    log_success "Certbot renewal cron job created"
 }
 
 # Check if Docker is installed and meets version requirements
@@ -426,23 +659,24 @@ print_success() {
     echo -e "${GREEN}║              ListPull Installation Complete!                 ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${BLUE}Application URL:${NC} http://localhost:3000"
-    echo -e "${BLUE}Staff Login:${NC}    http://localhost:3000/staff/login"
+    echo -e "${BLUE}Application URL:${NC} https://$DOMAIN"
+    echo -e "${BLUE}Staff Login:${NC}    https://$DOMAIN/staff/login"
     echo -e "${BLUE}Admin Email:${NC}    admin@store.com"
     echo ""
     echo -e "${BLUE}Configuration:${NC}  $APP_DIR/listpull.env"
     echo -e "${BLUE}Data Directory:${NC} $DATA_DIR"
+    echo -e "${BLUE}SSL Certs:${NC}      /etc/letsencrypt/live/$DOMAIN/"
     echo ""
     echo -e "${YELLOW}Useful Commands:${NC}"
     echo "  View logs:      cd $APP_DIR && docker compose --env-file listpull.env logs -f"
     echo "  Restart:        cd $APP_DIR && docker compose --env-file listpull.env restart"
     echo "  Stop:           cd $APP_DIR && docker compose --env-file listpull.env down"
     echo "  Update:         cd $APP_DIR && git pull && docker compose --env-file listpull.env up -d --build"
+    echo "  Renew SSL:      certbot renew --quiet"
     echo ""
-    echo -e "${YELLOW}For production deployment:${NC}"
-    echo "  1. Set up a reverse proxy (nginx) - see deploy/nginx.conf"
-    echo "  2. Configure SSL with Let's Encrypt"
-    echo "  3. Update CORS_ORIGIN in listpull.env for your domain"
+    echo -e "${YELLOW}SSL & Nginx:${NC}"
+    echo "  Certificates auto-renew via cron/systemd timer."
+    echo "  Nginx config: /etc/nginx/sites-available/listpull (or /etc/nginx/conf.d/listpull.conf)"
     echo ""
 }
 
@@ -461,6 +695,9 @@ main() {
 
     # Validate configuration FIRST
     validate_config
+
+    # Auto-set CORS_ORIGIN from DOMAIN
+    configure_cors_origin
 
     # Check and install dependencies
     check_utilities
@@ -493,6 +730,11 @@ main() {
 
     setup_application
     start_application
+
+    # Set up nginx reverse proxy and SSL
+    install_nginx
+    install_certbot
+    setup_ssl
 
     # Create admin user
     read -p "Create admin user now? (Y/n): " admin_choice
