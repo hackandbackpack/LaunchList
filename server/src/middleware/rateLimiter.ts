@@ -99,3 +99,9 @@ export const notificationRateLimiter = createRateLimiter({
   maxRequests: 5, // 5 notifications per minute
   message: 'Too many notification requests, please wait',
 });
+
+export const passwordResetRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 3, // 3 reset requests per 15 minutes
+  message: 'Too many password reset requests, please try again later',
+});

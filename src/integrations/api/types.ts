@@ -63,10 +63,35 @@ export interface AuthUser {
   role: UserRole;
 }
 
+// Staff user (returned by admin endpoints)
+export interface StaffUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+  createdAt: string;
+  createdBy?: string | null;
+}
+
+export interface StaffUsersListResponse {
+  users: StaffUser[];
+}
+
+export interface CreateUserInput {
+  email: string;
+  password: string;
+  role?: UserRole;
+}
+
+export interface CreateUserResponse {
+  user: StaffUser;
+}
+
 // API Response types
 export interface LoginResponse {
   token: string;
   user: AuthUser;
+  mustChangePassword: boolean;
 }
 
 export interface SessionResponse {

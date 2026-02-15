@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -23,7 +23,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function StaffLoginPage() {
   const navigate = useNavigate();
-  const { signIn, isStaff } = useAuth();
+  const { signIn } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -37,7 +37,7 @@ export default function StaffLoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
 
-    const { error } = await signIn(data.email, data.password);
+    const { error, mustChangePassword } = await signIn(data.email, data.password);
 
     if (error) {
       toast.error(error.message || 'Invalid credentials');
@@ -45,9 +45,9 @@ export default function StaffLoginPage() {
       return;
     }
 
-    // Small delay to let auth state update
+    const destination = mustChangePassword ? '/staff/change-password' : '/staff/dashboard';
     setTimeout(() => {
-      navigate('/staff/dashboard');
+      navigate(destination);
     }, 500);
   };
 
@@ -86,7 +86,15 @@ export default function StaffLoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  to="/staff/forgot-password"
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -121,7 +129,7 @@ export default function StaffLoginPage() {
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
             <a href="/" className="hover:text-primary transition-colors">
-              ← Back to home
+              &larr; Back to home
             </a>
           </div>
         </CardContent>

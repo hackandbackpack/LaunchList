@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ListPull Uninstall Script
+# LaunchList Uninstall Script
 #
 # Usage: sudo ./uninstall.sh
 #
@@ -13,8 +13,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-APP_DIR="/opt/listpull"
-DATA_DIR="/var/lib/listpull"
+APP_DIR="/opt/LaunchList"
+DATA_DIR="/var/lib/LaunchList"
 
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
@@ -27,12 +27,12 @@ fi
 
 echo -e "${YELLOW}"
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                  ListPull Uninstaller                        ║"
+echo "║                  LaunchList Uninstaller                        ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
 echo ""
-echo -e "${RED}WARNING: This will remove ListPull and optionally all data.${NC}"
+echo -e "${RED}WARNING: This will remove LaunchList and optionally all data.${NC}"
 echo ""
 
 read -p "Continue with uninstall? (y/N): " confirm
@@ -43,14 +43,14 @@ fi
 
 # Stop containers
 if [ -d "$APP_DIR" ]; then
-    log_info "Stopping ListPull containers..."
+    log_info "Stopping LaunchList containers..."
     cd "$APP_DIR"
     docker compose down 2>/dev/null || docker-compose down 2>/dev/null || true
 fi
 
 # Remove Docker volume
 log_info "Removing Docker volume..."
-docker volume rm listpull-data 2>/dev/null || true
+docker volume rm LaunchList-data 2>/dev/null || true
 
 # Ask about data
 echo ""
@@ -68,16 +68,16 @@ log_info "Removing application files..."
 rm -rf "$APP_DIR"
 
 # Remove systemd service if exists
-if [ -f /etc/systemd/system/listpull.service ]; then
+if [ -f /etc/systemd/system/LaunchList.service ]; then
     log_info "Removing systemd service..."
-    systemctl stop listpull 2>/dev/null || true
-    systemctl disable listpull 2>/dev/null || true
-    rm -f /etc/systemd/system/listpull.service
+    systemctl stop LaunchList 2>/dev/null || true
+    systemctl disable LaunchList 2>/dev/null || true
+    rm -f /etc/systemd/system/LaunchList.service
     systemctl daemon-reload
 fi
 
 echo ""
-log_success "ListPull has been uninstalled"
+log_success "LaunchList has been uninstalled"
 echo ""
 echo "Note: Docker and Docker Compose were not removed."
 echo "To remove them, use your package manager."

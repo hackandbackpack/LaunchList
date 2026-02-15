@@ -1,26 +1,26 @@
 [Unit]
-Description=ListPull Decklist Application
-Documentation=https://github.com/your-org/listpull
+Description=LaunchList Decklist Application
+Documentation=https://github.com/your-org/LaunchList
 After=network.target
 
 [Service]
 Type=simple
-User=listpull
-Group=listpull
-WorkingDirectory=/opt/listpull
+User=LaunchList
+Group=LaunchList
+WorkingDirectory=/opt/LaunchList
 ExecStart=/usr/bin/node server.js
 Restart=on-failure
 RestartSec=10
 
 # Environment
-EnvironmentFile=/opt/listpull/.env
+EnvironmentFile=/opt/LaunchList/.env
 
 # Security hardening
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/listpull
+ReadWritePaths=/opt/LaunchList
 
 # Resource limits
 MemoryMax=512M
@@ -29,7 +29,7 @@ CPUQuota=100%
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=listpull
+SyslogIdentifier=LaunchList
 
 [Install]
 WantedBy=multi-user.target

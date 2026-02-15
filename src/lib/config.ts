@@ -1,4 +1,4 @@
-// Centralized configuration for ListPull
+// Centralized configuration for LaunchList
 // All values can be overridden via VITE_* environment variables
 
 interface StoreConfig {

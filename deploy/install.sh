@@ -1,11 +1,11 @@
 #!/bin/bash
 #
-# ListPull Installation Script for Linux
+# LaunchList Installation Script for Linux
 # Supports: Ubuntu/Debian, RHEL/CentOS/Fedora, Arch Linux
 #
 # Prerequisites:
-#   1. Copy listpull.env.example to listpull.env
-#   2. Fill in all required fields in listpull.env
+#   1. Copy LaunchList.env.example to LaunchList.env
+#   2. Fill in all required fields in LaunchList.env
 #   3. Run: sudo ./deploy/install.sh
 #
 
@@ -19,9 +19,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-APP_NAME="listpull"
-APP_DIR="/opt/listpull"
-DATA_DIR="/var/lib/listpull"
+APP_NAME="LaunchList"
+APP_DIR="/opt/LaunchList"
+DATA_DIR="/var/lib/LaunchList"
 REQUIRED_DOCKER_VERSION="20.10.0"
 REQUIRED_COMPOSE_VERSION="2.0.0"
 
@@ -44,7 +44,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 print_banner() {
     echo -e "${BLUE}"
     echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║                    ListPull Installer                        ║"
+    echo "║                    LaunchList Installer                        ║"
     echo "║              Self-Hosted Decklist Manager                    ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -91,14 +91,14 @@ find_source_dir() {
     elif [ -f "$SCRIPT_DIR/../docker-compose.yml" ]; then
         SOURCE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
     else
-        log_error "Could not find ListPull source files"
-        log_info "Please run this script from the ListPull directory:"
-        log_info "  cd /path/to/listpull"
+        log_error "Could not find LaunchList source files"
+        log_info "Please run this script from the LaunchList directory:"
+        log_info "  cd /path/to/LaunchList"
         log_info "  sudo ./deploy/install.sh"
         exit 1
     fi
 
-    CONFIG_FILE="$SOURCE_DIR/listpull.env"
+    CONFIG_FILE="$SOURCE_DIR/LaunchList.env"
 }
 
 # Validate configuration file
@@ -113,10 +113,10 @@ validate_config() {
         echo -e "${YELLOW}Please complete these steps before running the installer:${NC}"
         echo ""
         echo "  1. Copy the example configuration:"
-        echo -e "     ${BLUE}cp listpull.env.example listpull.env${NC}"
+        echo -e "     ${BLUE}cp LaunchList.env.example LaunchList.env${NC}"
         echo ""
         echo "  2. Edit the configuration file:"
-        echo -e "     ${BLUE}nano listpull.env${NC}"
+        echo -e "     ${BLUE}nano LaunchList.env${NC}"
         echo ""
         echo "  3. Fill in all [REQUIRED] fields (see comments in file)"
         echo ""
@@ -170,7 +170,7 @@ validate_config() {
         elif echo "$DOMAIN" | grep -qE '/$'; then
             invalid_fields+=("DOMAIN (remove trailing slash)")
         elif ! echo "$DOMAIN" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}$'; then
-            invalid_fields+=("DOMAIN (invalid domain format, e.g., listpull.example.com)")
+            invalid_fields+=("DOMAIN (invalid domain format, e.g., LaunchList.example.com)")
         fi
     fi
 
@@ -343,9 +343,9 @@ setup_ssl() {
 
     local TEMP_CONF
     if [ "$NGINX_LINK_STYLE" = "symlink" ]; then
-        TEMP_CONF="$NGINX_CONF_DIR/listpull"
+        TEMP_CONF="$NGINX_CONF_DIR/LaunchList"
     else
-        TEMP_CONF="$NGINX_CONF_DIR/listpull.conf"
+        TEMP_CONF="$NGINX_CONF_DIR/LaunchList.conf"
     fi
 
     # Write a minimal HTTP-only config for the ACME challenge
@@ -368,7 +368,7 @@ NGINX_HTTP
 
     # Enable the site (Debian/Ubuntu symlink style)
     if [ "$NGINX_LINK_STYLE" = "symlink" ]; then
-        ln -sf "$TEMP_CONF" "$NGINX_ENABLED_DIR/listpull"
+        ln -sf "$TEMP_CONF" "$NGINX_ENABLED_DIR/LaunchList"
         # Remove default site if it would conflict on port 80
         rm -f "$NGINX_ENABLED_DIR/default"
     fi
@@ -401,7 +401,7 @@ NGINX_HTTP
     log_info "Deploying full nginx SSL configuration..."
 
     cp "$TEMPLATE" "$TEMP_CONF"
-    sed -i "s/listpull\.yourdomain\.com/$DOMAIN/g" "$TEMP_CONF"
+    sed -i "s/LaunchList\.yourdomain\.com/$DOMAIN/g" "$TEMP_CONF"
 
     # Enable the site (already symlinked for Debian/Ubuntu)
     nginx -t || {
@@ -436,8 +436,8 @@ setup_certbot_renewal() {
 
     # Create a cron job as fallback
     echo '0 3 * * * root certbot renew --quiet --deploy-hook "systemctl reload nginx"' \
-        > /etc/cron.d/listpull-certbot-renew
-    chmod 644 /etc/cron.d/listpull-certbot-renew
+        > /etc/cron.d/LaunchList-certbot-renew
+    chmod 644 /etc/cron.d/LaunchList-certbot-renew
 
     log_success "Certbot renewal cron job created"
 }
@@ -581,7 +581,7 @@ setup_application() {
     fi
 
     # Copy config file to app directory
-    cp "$CONFIG_FILE" "$APP_DIR/listpull.env"
+    cp "$CONFIG_FILE" "$APP_DIR/LaunchList.env"
 
     cd "$APP_DIR"
     log_success "Application files ready at $APP_DIR"
@@ -589,13 +589,13 @@ setup_application() {
 
 # Build and start the application
 start_application() {
-    log_info "Building and starting ListPull..."
+    log_info "Building and starting LaunchList..."
 
     cd "$APP_DIR"
 
     # Build and start with env file
-    $COMPOSE_CMD --env-file listpull.env down 2>/dev/null || true
-    $COMPOSE_CMD --env-file listpull.env up -d --build
+    $COMPOSE_CMD --env-file LaunchList.env down 2>/dev/null || true
+    $COMPOSE_CMD --env-file LaunchList.env up -d --build
 
     log_info "Waiting for application to start..."
     sleep 5
@@ -608,7 +608,7 @@ start_application() {
         sleep 2
     done
 
-    log_warn "Application may still be starting. Check status with: $COMPOSE_CMD --env-file listpull.env logs"
+    log_warn "Application may still be starting. Check status with: $COMPOSE_CMD --env-file LaunchList.env logs"
 }
 
 # Create initial admin user
@@ -641,13 +641,13 @@ create_admin_user() {
     log_info "Creating admin user..."
     cd "$APP_DIR"
 
-    docker exec listpull sh -c "ADMIN_PASSWORD='$ADMIN_PASSWORD' node dist/db/seed.js" 2>/dev/null && {
+    docker exec LaunchList sh -c "ADMIN_PASSWORD='$ADMIN_PASSWORD' node dist/db/seed.js" 2>/dev/null && {
         log_success "Admin user created"
         echo "  Email: admin@store.com"
     } || {
         log_warn "Could not create admin user automatically"
         log_info "Create admin manually by running:"
-        log_info "  docker exec -it listpull sh"
+        log_info "  docker exec -it LaunchList sh"
         log_info "  ADMIN_PASSWORD=your-password node dist/db/seed.js"
     }
 }
@@ -656,27 +656,27 @@ create_admin_user() {
 print_success() {
     echo ""
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║              ListPull Installation Complete!                 ║${NC}"
+    echo -e "${GREEN}║              LaunchList Installation Complete!                 ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BLUE}Application URL:${NC} https://$DOMAIN"
     echo -e "${BLUE}Staff Login:${NC}    https://$DOMAIN/staff/login"
     echo -e "${BLUE}Admin Email:${NC}    admin@store.com"
     echo ""
-    echo -e "${BLUE}Configuration:${NC}  $APP_DIR/listpull.env"
+    echo -e "${BLUE}Configuration:${NC}  $APP_DIR/LaunchList.env"
     echo -e "${BLUE}Data Directory:${NC} $DATA_DIR"
     echo -e "${BLUE}SSL Certs:${NC}      /etc/letsencrypt/live/$DOMAIN/"
     echo ""
     echo -e "${YELLOW}Useful Commands:${NC}"
-    echo "  View logs:      cd $APP_DIR && docker compose --env-file listpull.env logs -f"
-    echo "  Restart:        cd $APP_DIR && docker compose --env-file listpull.env restart"
-    echo "  Stop:           cd $APP_DIR && docker compose --env-file listpull.env down"
-    echo "  Update:         cd $APP_DIR && git pull && docker compose --env-file listpull.env up -d --build"
+    echo "  View logs:      cd $APP_DIR && docker compose --env-file LaunchList.env logs -f"
+    echo "  Restart:        cd $APP_DIR && docker compose --env-file LaunchList.env restart"
+    echo "  Stop:           cd $APP_DIR && docker compose --env-file LaunchList.env down"
+    echo "  Update:         cd $APP_DIR && git pull && docker compose --env-file LaunchList.env up -d --build"
     echo "  Renew SSL:      certbot renew --quiet"
     echo ""
     echo -e "${YELLOW}SSL & Nginx:${NC}"
     echo "  Certificates auto-renew via cron/systemd timer."
-    echo "  Nginx config: /etc/nginx/sites-available/listpull (or /etc/nginx/conf.d/listpull.conf)"
+    echo "  Nginx config: /etc/nginx/sites-available/LaunchList (or /etc/nginx/conf.d/LaunchList.conf)"
     echo ""
 }
 

@@ -1,4 +1,4 @@
-# ListPull Docker Image
+# LaunchList Docker Image
 # Single container with frontend + backend
 
 # Build stage for frontend
@@ -7,7 +7,7 @@ FROM node:18-alpine AS frontend-builder
 WORKDIR /app
 
 # Build arguments for Vite (must be available at build time)
-ARG VITE_STORE_NAME="ListPull"
+ARG VITE_STORE_NAME="LaunchList"
 ARG VITE_STORE_EMAIL="contact@example.com"
 ARG VITE_STORE_PHONE="555.123.4567"
 ARG VITE_STORE_ADDRESS="123 Main Street"
@@ -111,7 +111,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Environment variables for runtime
 ENV PORT=3000
-ENV DATABASE_PATH=/app/data/listpull.db
+ENV DATABASE_PATH=/app/data/LaunchList.db
 ENV NODE_ENV=production
 
 # Start the server

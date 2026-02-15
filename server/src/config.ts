@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   PORT: z.string().default('3000'),
-  DATABASE_PATH: z.string().default('./data/listpull.db'),
+  DATABASE_PATH: z.string().default('./data/LaunchList.db'),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRY: z.string().default('7d'),
 
@@ -13,7 +13,7 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_SECURE: z.string().default('false'),
   FROM_EMAIL: z.string().optional(),
-  FROM_NAME: z.string().default('ListPull'),
+  FROM_NAME: z.string().default('LaunchList'),
 
   // Store Configuration
   STORE_NAME: z.string().default('Your Store'),
@@ -33,6 +33,9 @@ const envSchema = z.object({
   DISCORD_DAILY_DIGEST_HOUR: z.string().optional().default('10'),
   DISCORD_DAILY_DIGEST_TIMEZONE: z.string().optional().default('America/New_York'),
   DISCORD_STALE_ORDER_HOURS: z.string().optional().default('48'),
+
+  // Application URL (for password reset links)
+  APP_URL: z.string().url().optional().or(z.literal('')),
 });
 
 function loadConfig() {
@@ -78,6 +81,8 @@ function loadConfig() {
       timezone: result.data.DISCORD_DAILY_DIGEST_TIMEZONE || 'America/New_York',
       staleOrderHours: parseInt(result.data.DISCORD_STALE_ORDER_HOURS || '48', 10),
     },
+
+    appUrl: result.data.APP_URL || result.data.CORS_ORIGIN || null,
   };
 }
 

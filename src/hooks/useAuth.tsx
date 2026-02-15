@@ -7,8 +7,10 @@ interface AuthContextType {
   role: UserRole | null;
   isStaff: boolean;
   isAdmin: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  mustChangePassword: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; mustChangePassword?: boolean }>;
   signOut: () => Promise<void>;
+  clearMustChangePassword: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,6 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   useEffect(() => {
     // Check for existing session on mount
@@ -40,7 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.auth.login(email, password);
       setUser(response.user);
       setRole(response.user.role);
-      return { error: null };
+      const needsChange = response.mustChangePassword ?? false;
+      setMustChangePassword(needsChange);
+      return { error: null, mustChangePassword: needsChange };
     } catch (err) {
       return { error: err instanceof Error ? err : new Error('Login failed') };
     }
@@ -52,7 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       setRole(null);
+      setMustChangePassword(false);
     }
+  };
+
+  const clearMustChangePassword = () => {
+    setMustChangePassword(false);
   };
 
   const value = {
@@ -61,8 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role,
     isStaff: role === 'staff' || role === 'admin',
     isAdmin: role === 'admin',
+    mustChangePassword,
     signIn,
     signOut,
+    clearMustChangePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

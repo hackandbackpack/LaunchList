@@ -1,8 +1,8 @@
-# ListPull Production Readiness Implementation Plan
+# LaunchList Production Readiness Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Make ListPull production-ready for Blast Off Gaming — security hardening, staff workflow fixes, reliability improvements, and Discord notifications.
+**Goal:** Make LaunchList production-ready for Blast Off Gaming — security hardening, staff workflow fixes, reliability improvements, and Discord notifications.
 
 **Architecture:** Express + SQLite backend, React + Vite frontend. Single Docker container. No external dependencies added except native `fetch()` for Discord webhooks. All new DB tables use the existing Drizzle ORM + raw SQL pattern from `db/index.ts`.
 
@@ -79,7 +79,7 @@ app.use((req, res, next) => {
 Add after the `PORT=3000` line in `.env.example`:
 
 ```env
-# CORS origin for production (your domain, e.g., https://listpull.blastoffgaming.com)
+# CORS origin for production (your domain, e.g., https://LaunchList.blastoffgaming.com)
 # Leave empty in development. Required for production.
 CORS_ORIGIN=
 ```
@@ -1577,17 +1577,17 @@ Create `scripts/backup.sh`:
 
 ```bash
 #!/bin/sh
-# ListPull Database Backup Script
+# LaunchList Database Backup Script
 # Runs daily via cron inside Docker container
 
 BACKUP_DIR="/app/data/backups"
-DB_PATH="/app/data/listpull.db"
+DB_PATH="/app/data/LaunchList.db"
 RETENTION_DAYS=7
 
 mkdir -p "$BACKUP_DIR"
 
 # Use SQLite .backup for a consistent copy
-BACKUP_FILE="$BACKUP_DIR/listpull-$(date +%Y%m%d-%H%M%S).db"
+BACKUP_FILE="$BACKUP_DIR/LaunchList-$(date +%Y%m%d-%H%M%S).db"
 sqlite3 "$DB_PATH" ".backup '$BACKUP_FILE'"
 
 if [ $? -eq 0 ]; then
@@ -1598,7 +1598,7 @@ else
 fi
 
 # Remove backups older than retention period
-find "$BACKUP_DIR" -name "listpull-*.db" -mtime +$RETENTION_DAYS -delete
+find "$BACKUP_DIR" -name "LaunchList-*.db" -mtime +$RETENTION_DAYS -delete
 echo "Cleaned up backups older than $RETENTION_DAYS days"
 ```
 
@@ -1619,16 +1619,16 @@ Add a backup volume to `docker-compose.yml`:
 
 ```yaml
 volumes:
-  - listpull-data:/app/data
-  - listpull-backups:/app/data/backups
+  - LaunchList-data:/app/data
+  - LaunchList-backups:/app/data/backups
 ```
 
 And add the volume definition:
 
 ```yaml
 volumes:
-  listpull-data:
-  listpull-backups:
+  LaunchList-data:
+  LaunchList-backups:
 ```
 
 **Step 3: Document the backup and restore process**
@@ -1639,11 +1639,11 @@ Add to `deploy/README.md` under Management Commands:
 ### Backups
 
 # Manual backup
-docker exec listpull /app/scripts/backup.sh
+docker exec LaunchList /app/scripts/backup.sh
 
 # Restore from backup
-docker cp ./backup-file.db listpull:/app/data/listpull.db
-docker compose --env-file listpull.env restart
+docker cp ./backup-file.db LaunchList:/app/data/LaunchList.db
+docker compose --env-file LaunchList.env restart
 ```
 
 **Step 4: Commit**
@@ -1867,7 +1867,7 @@ export async function sendDailyDigest() {
   const total = counts.submitted + counts.inProgress + counts.ready;
   if (total === 0 && staleOrders.length === 0 && stalePickups.length === 0) {
     await sendWebhook([{
-      title: 'ListPull Daily Digest',
+      title: 'LaunchList Daily Digest',
       description: 'No pending orders — all caught up!',
       color: COLORS.green,
       timestamp: new Date().toISOString(),
@@ -1908,7 +1908,7 @@ export async function sendDailyDigest() {
   }
 
   await sendWebhook([{
-    title: `ListPull Daily Digest — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+    title: `LaunchList Daily Digest — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
     description: `${total} total active order${total === 1 ? '' : 's'}`,
     color,
     fields,
@@ -2107,7 +2107,7 @@ feat: add scheduler for daily Discord digest and stale order monitoring
 **Step 1: Install and build**
 
 ```bash
-cd listpull && npm install
+cd LaunchList && npm install
 cd server && npm install && cd ..
 ```
 
@@ -2135,8 +2135,8 @@ npm run dev
 **Step 4: Docker build test**
 
 ```bash
-docker compose --env-file listpull.env up -d --build
-docker exec listpull /app/scripts/backup.sh
+docker compose --env-file LaunchList.env up -d --build
+docker exec LaunchList /app/scripts/backup.sh
 ```
 
 **Step 5: Final commit**

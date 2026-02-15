@@ -15,6 +15,9 @@ import type {
   GetOrdersParams,
   DeckRequest,
   DeckLineItem,
+  StaffUsersListResponse,
+  CreateUserInput,
+  CreateUserResponse,
 } from './types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -120,6 +123,27 @@ export const auth = {
       throw err;
     }
   },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await apiFetch<{ message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
+  async requestPasswordReset(email: string): Promise<void> {
+    await apiFetch<{ message: string }>('/auth/request-reset', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    await apiFetch<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    });
+  },
 };
 
 async function getCsrfToken(): Promise<string> {
@@ -217,6 +241,26 @@ export const notifications = {
   },
 };
 
+// Admin API (requires admin auth)
+export const admin = {
+  async getUsers(): Promise<StaffUsersListResponse> {
+    return apiFetch<StaffUsersListResponse>('/admin/users');
+  },
+
+  async createUser(input: CreateUserInput): Promise<CreateUserResponse> {
+    return apiFetch<CreateUserResponse>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  },
+
+  async deleteUser(userId: string): Promise<void> {
+    await apiFetch<{ message: string }>(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Pokemon TCG Proxy
 export const pokemonTcg = {
   async search(query: string): Promise<PokemonTcgResponse> {
@@ -237,6 +281,7 @@ const api = {
   auth,
   orders,
   staff,
+  admin,
   notifications,
   pokemonTcg,
   setAuthToken,

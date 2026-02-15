@@ -149,6 +149,28 @@ function createTables() {
     sqlite.exec(`ALTER TABLE deck_requests ADD COLUMN pickup_alert_sent INTEGER NOT NULL DEFAULT 0`);
   } catch { /* Column already exists */ }
 
+  // User management columns (migration-safe)
+  try {
+    sqlite.exec(`ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`);
+  } catch { /* Column already exists */ }
+  try {
+    sqlite.exec(`ALTER TABLE users ADD COLUMN created_by TEXT`);
+  } catch { /* Column already exists */ }
+
+  // Password reset tokens table
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_reset_tokens(user_id);
+    CREATE INDEX IF NOT EXISTS idx_password_reset_hash ON password_reset_tokens(token_hash);
+  `);
+
   // Create indexes
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_deck_requests_order_number ON deck_requests(order_number);
@@ -163,6 +185,7 @@ function cleanExpiredRecords() {
   if (!sqlite) return;
   sqlite.exec(`DELETE FROM token_blacklist WHERE expires_at < datetime('now')`);
   sqlite.exec(`DELETE FROM login_attempts WHERE attempted_at < datetime('now', '-1 day')`);
+  sqlite.exec(`DELETE FROM password_reset_tokens WHERE expires_at < datetime('now')`);
 }
 
 export function getDatabase() {

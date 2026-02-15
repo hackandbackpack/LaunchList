@@ -1,16 +1,16 @@
-# ListPull Docker Compose Configuration
-# Usage: docker compose --env-file listpull.env up -d --build
+# LaunchList Docker Compose Configuration
+# Usage: docker compose --env-file LaunchList.env up -d --build
 
 services:
   app:
     env_file:
-      - listpull.env
+      - LaunchList.env
     build:
       context: .
       dockerfile: Dockerfile
       args:
         # Frontend build args (Vite requires VITE_ prefix)
-        - VITE_STORE_NAME=${STORE_NAME:-ListPull}
+        - VITE_STORE_NAME=${STORE_NAME:-LaunchList}
         - VITE_STORE_EMAIL=${STORE_EMAIL:-contact@example.com}
         - VITE_STORE_PHONE=${STORE_PHONE:-555.123.4567}
         - VITE_STORE_ADDRESS=${STORE_ADDRESS:-123 Main Street}
@@ -22,14 +22,14 @@ services:
         - VITE_POKEMON_RATE_LIMIT_MS=${POKEMON_RATE_LIMIT_MS:-200}
         - VITE_AUTOCOMPLETE_DEBOUNCE_MS=${AUTOCOMPLETE_DEBOUNCE_MS:-200}
         - VITE_API_URL=/api
-    container_name: listpull
+    container_name: LaunchList
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=${PORT:-3000}
-      - DATABASE_PATH=/app/data/listpull.db
+      - DATABASE_PATH=/app/data/LaunchList.db
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - JWT_EXPIRY=${JWT_EXPIRY:-7d}
       # SMTP Configuration
@@ -39,16 +39,25 @@ services:
       - SMTP_PASS=${SMTP_PASS:-}
       - SMTP_SECURE=${SMTP_SECURE:-false}
       - FROM_EMAIL=${FROM_EMAIL:-}
-      - FROM_NAME=${STORE_NAME:-ListPull}
+      - FROM_NAME=${STORE_NAME:-LaunchList}
       # Store Configuration (backend)
-      - STORE_NAME=${STORE_NAME:-ListPull}
+      - STORE_NAME=${STORE_NAME:-LaunchList}
       - STORE_EMAIL=${STORE_EMAIL:-}
       - STORE_PHONE=${STORE_PHONE:-}
       - STORE_ADDRESS=${STORE_ADDRESS:-}
       - ORDER_PREFIX=${ORDER_PREFIX:-LP}
+      - CORS_ORIGIN=${CORS_ORIGIN:-}
+      # Discord Notifications
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      - DISCORD_DAILY_DIGEST_HOUR=${DISCORD_DAILY_DIGEST_HOUR:-10}
+      - DISCORD_DAILY_DIGEST_TIMEZONE=${DISCORD_DAILY_DIGEST_TIMEZONE:-America/New_York}
+      - DISCORD_STALE_ORDER_HOURS=${DISCORD_STALE_ORDER_HOURS:-48}
+      - ORDER_HOLD_DAYS=${ORDER_HOLD_DAYS:-7}
+      # Application URL (for password reset links)
+      - APP_URL=${APP_URL:-}
     volumes:
-      - listpull-data:/app/data
-      - listpull-backups:/app/data/backups
+      - LaunchList-data:/app/data
+      - LaunchList-backups:/app/data/backups
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -70,5 +79,5 @@ services:
         max-file: "3"
 
 volumes:
-  listpull-data:
-  listpull-backups:
+  LaunchList-data:
+  LaunchList-backups:

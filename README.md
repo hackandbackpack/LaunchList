@@ -1,4 +1,4 @@
-# ListPull
+# LaunchList
 
 A decklist ordering system for trading card game stores. Customers submit decklists online, staff pull singles from inventory, and everyone saves time.
 
@@ -39,8 +39,8 @@ A decklist ordering system for trading card game stores. Customers submit deckli
 Requires Node.js 18+ and npm.
 
 ```bash
-git clone https://github.com/hackandbackpack/listpull.git
-cd listpull
+git clone https://github.com/hackandbackpack/LaunchList.git
+cd LaunchList
 
 # Install frontend dependencies
 npm install
@@ -49,8 +49,8 @@ npm install
 cd server && npm install && cd ..
 
 # Copy and configure environment
-cp listpull.env.example listpull.env
-# Edit listpull.env - fill in required fields (JWT_SECRET, store info)
+cp LaunchList.env.example LaunchList.env
+# Edit LaunchList.env - fill in required fields (JWT_SECRET, store info)
 
 # Start the dev server
 npm run dev
@@ -61,14 +61,14 @@ Frontend runs on the Vite dev server with hot reload. The backend runs separatel
 ### Docker Deployment
 
 ```bash
-cp listpull.env.example listpull.env
-# Edit listpull.env with your store details
+cp LaunchList.env.example LaunchList.env
+# Edit LaunchList.env with your store details
 
 # Build and start
-docker compose --env-file listpull.env up -d --build
+docker compose --env-file LaunchList.env up -d --build
 
 # Create the admin account
-docker exec -it listpull sh
+docker exec -it LaunchList sh
 ADMIN_PASSWORD=your-secure-password node dist/db/seed.js
 exit
 ```
@@ -79,7 +79,7 @@ See [deploy/README.md](deploy/README.md) for production deployment with Nginx, S
 
 ## Configuration
 
-All settings live in a single `listpull.env` file. See `listpull.env.example` for the full list.
+All settings live in a single `LaunchList.env` file. See `LaunchList.env.example` for the full list.
 
 | Setting | Description | Required |
 |---------|-------------|----------|
@@ -95,7 +95,7 @@ All settings live in a single `listpull.env` file. See `listpull.env.example` fo
 ## Project Structure
 
 ```
-listpull/
+LaunchList/
 ├── src/                    # Frontend (React)
 │   ├── pages/              # Route pages (Index, Submit, Status, Staff)
 │   ├── components/         # UI components
@@ -114,7 +114,7 @@ listpull/
 ├── deploy/                 # Deployment scripts and configs
 ├── docker-compose.yml
 ├── Dockerfile
-└── listpull.env.example
+└── LaunchList.env.example
 ```
 
 ## Scripts
@@ -130,14 +130,14 @@ npm run lint      # Run ESLint
 
 ```bash
 # View logs
-docker compose --env-file listpull.env logs -f
+docker compose --env-file LaunchList.env logs -f
 
 # Restart
-docker compose --env-file listpull.env restart
+docker compose --env-file LaunchList.env restart
 
 # Update
-git pull && docker compose --env-file listpull.env up -d --build
+git pull && docker compose --env-file LaunchList.env up -d --build
 
 # Backup database
-docker cp listpull:/app/data/listpull.db ./backup-$(date +%Y%m%d).db
+docker cp LaunchList:/app/data/LaunchList.db ./backup-$(date +%Y%m%d).db
 ```

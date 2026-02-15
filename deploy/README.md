@@ -1,15 +1,15 @@
-# ListPull Deployment Guide
+# LaunchList Deployment Guide
 
 ## Quick Start (Linux)
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourrepo/listpull.git
-cd listpull
+git clone https://github.com/yourrepo/LaunchList.git
+cd LaunchList
 
 # Create and edit configuration
-cp listpull.env.example listpull.env
-nano listpull.env    # Fill in all [REQUIRED] fields
+cp LaunchList.env.example LaunchList.env
+nano LaunchList.env    # Fill in all [REQUIRED] fields
 
 # Run the installer
 sudo ./deploy/install.sh
@@ -33,30 +33,30 @@ The installer will:
 
 1. **Clone and configure:**
    ```bash
-   git clone https://github.com/yourrepo/listpull.git
-   cd listpull
-   cp listpull.env.example listpull.env
+   git clone https://github.com/yourrepo/LaunchList.git
+   cd LaunchList
+   cp LaunchList.env.example LaunchList.env
    ```
 
 2. **Edit configuration:**
    ```bash
-   nano listpull.env
+   nano LaunchList.env
    ```
 
    Required settings:
    - `JWT_SECRET` - Generate with: `openssl rand -hex 32`
-   - `DOMAIN` - Your domain name (e.g., `listpull.blastoffgaming.com`)
+   - `DOMAIN` - Your domain name (e.g., `LaunchList.blastoffgaming.com`)
    - Store branding (name, email, phone, address)
    - Optional: SMTP settings for email notifications
 
 3. **Start the application:**
    ```bash
-   docker compose --env-file listpull.env up -d --build
+   docker compose --env-file LaunchList.env up -d --build
    ```
 
 4. **Create admin user:**
    ```bash
-   docker exec -it listpull sh
+   docker exec -it LaunchList sh
    ADMIN_PASSWORD=your-secure-password node dist/db/seed.js
    exit
    ```
@@ -68,7 +68,7 @@ The installer will:
 
 ## Configuration
 
-All configuration is in a single `listpull.env` file. See `listpull.env.example` for all options.
+All configuration is in a single `LaunchList.env` file. See `LaunchList.env.example` for all options.
 
 ### Key Settings
 
@@ -113,8 +113,8 @@ The `CORS_ORIGIN` is auto-set to `https://$DOMAIN` if left empty.
 If you prefer to manage SSL yourself (without the automated installer), set up nginx manually:
 
 ```bash
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/listpull
-sudo ln -s /etc/nginx/sites-available/listpull /etc/nginx/sites-enabled/
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/LaunchList
+sudo ln -s /etc/nginx/sites-available/LaunchList /etc/nginx/sites-enabled/
 # Edit server_name in the config, then:
 sudo certbot --nginx -d yourdomain.com
 sudo systemctl restart nginx
@@ -124,23 +124,23 @@ sudo systemctl restart nginx
 
 ```bash
 # View logs
-docker compose --env-file listpull.env logs -f
+docker compose --env-file LaunchList.env logs -f
 
 # Restart
-docker compose --env-file listpull.env restart
+docker compose --env-file LaunchList.env restart
 
 # Stop
-docker compose --env-file listpull.env down
+docker compose --env-file LaunchList.env down
 
 # Update
 git pull
-docker compose --env-file listpull.env up -d --build
+docker compose --env-file LaunchList.env up -d --build
 
 # Backup database
-docker cp listpull:/app/data/listpull.db ./backup-$(date +%Y%m%d).db
+docker cp LaunchList:/app/data/LaunchList.db ./backup-$(date +%Y%m%d).db
 
 # Shell access
-docker exec -it listpull sh
+docker exec -it LaunchList sh
 ```
 
 ## Uninstall
@@ -174,15 +174,15 @@ sudo systemctl status nginx
 ### Reset admin password
 
 ```bash
-docker exec -it listpull sh
+docker exec -it LaunchList sh
 # Delete old admin and recreate
-sqlite3 /app/data/listpull.db "DELETE FROM users WHERE email='admin@store.com';"
+sqlite3 /app/data/LaunchList.db "DELETE FROM users WHERE email='admin@store.com';"
 ADMIN_PASSWORD=new-password node dist/db/seed.js
 ```
 
 ## Files
 
-- `listpull.env` - All configuration (create from listpull.env.example)
+- `LaunchList.env` - All configuration (create from LaunchList.env.example)
 - `deploy/install.sh` - Installation script
 - `deploy/uninstall.sh` - Uninstallation script
 - `deploy/nginx.conf` - Nginx reverse proxy config

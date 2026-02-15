@@ -1,4 +1,4 @@
-# ListPull Production Readiness — Design Document
+# LaunchList Production Readiness — Design Document
 
 **Date:** 2026-02-13
 **Status:** Approved
@@ -238,7 +238,7 @@
 ### 4.1 — Discord Webhook Integration
 **Approach:** Discord webhooks — no bot token, no dependencies, just POST to webhook URL.
 
-**Config in `listpull.env`:**
+**Config in `LaunchList.env`:**
 ```env
 DISCORD_WEBHOOK_URL=
 DISCORD_DAILY_DIGEST_HOUR=10

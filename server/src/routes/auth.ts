@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { config } from '../config.js';
@@ -8,14 +9,31 @@ import { getDatabase, getSqlite } from '../db/index.js';
 import { users, tokenBlacklist } from '../db/schema.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { createError } from '../middleware/errorHandler.js';
-import { authRateLimiter } from '../middleware/rateLimiter.js';
+import { authRateLimiter, passwordResetRateLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../services/auditService.js';
+import { sendPasswordResetEmail } from '../services/staffEmailService.js';
 
 const router = Router();
+
+const BCRYPT_ROUNDS = 13;
 
 const loginSchema = z.object({
   email: z.string().email().max(254),
   password: z.string().min(8).max(128),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(12).max(128),
+});
+
+const requestResetSchema = z.object({
+  email: z.string().email().max(254),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().length(64),
+  newPassword: z.string().min(12).max(128),
 });
 
 const DUMMY_HASH = '$2b$10$K4GxSm1D6hZGKeixhFT4duMm5sY3N5Y3N5Y3N5Y3N5Y3N5Y3N5Y3O';
@@ -80,6 +98,7 @@ router.post('/login', authRateLimiter, async (req, res, next) => {
         email: user.email,
         role: user.role,
       },
+      mustChangePassword: user.mustChangePassword ?? false,
     });
   } catch (err) {
     next(err);
@@ -109,6 +128,128 @@ router.get('/session', requireAuth, (req: AuthRequest, res) => {
   res.json({
     user: req.user,
   });
+});
+
+// POST /api/auth/change-password - Requires authentication
+router.post('/change-password', requireAuth, async (req: AuthRequest, res, next) => {
+  try {
+    const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+    const db = getDatabase();
+
+    const user = db.select().from(users).where(eq(users.id, req.user!.id)).get();
+    if (!user) {
+      return next(createError('User not found', 404));
+    }
+
+    const validCurrent = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!validCurrent) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    // Reject if new password is same as current
+    const samePassword = await bcrypt.compare(newPassword, user.passwordHash);
+    if (samePassword) {
+      return res.status(400).json({ error: 'New password must be different from current password' });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+    db.update(users)
+      .set({ passwordHash: newHash, mustChangePassword: false })
+      .where(eq(users.id, req.user!.id))
+      .run();
+
+    logAudit(req, { action: 'auth.change_password', entityType: 'user', entityId: req.user!.id });
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/request-reset - Rate limited, no auth required
+router.post('/request-reset', passwordResetRateLimiter, async (req, res, next) => {
+  try {
+    const { email } = requestResetSchema.parse(req.body);
+    const db = getDatabase();
+    const sqliteDb = getSqlite();
+
+    // Always return success to prevent email enumeration
+    const successResponse = { message: 'If an account exists with that email, a password reset link has been sent.' };
+
+    const user = db.select().from(users).where(eq(users.email, email.toLowerCase())).get();
+    if (!user) {
+      // Perform dummy work to keep timing consistent
+      await bcrypt.hash('dummy-timing-work', 4);
+      return res.json(successResponse);
+    }
+
+    // Invalidate previous tokens for this user
+    sqliteDb.prepare(`UPDATE password_reset_tokens SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL`)
+      .run(user.id);
+
+    // Generate 32-byte random token (hex = 64 chars)
+    const tokenBytes = crypto.randomBytes(32);
+    const tokenHex = tokenBytes.toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(tokenHex).digest('hex');
+
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+
+    sqliteDb.prepare(`
+      INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, created_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(user.id, tokenHash, expiresAt);
+
+    // Build reset URL
+    const baseUrl = config.appUrl || `http://localhost:${config.port}`;
+    const resetUrl = `${baseUrl}/staff/reset-password?token=${tokenHex}`;
+
+    await sendPasswordResetEmail(user.email, resetUrl);
+
+    logAudit(req, { action: 'auth.password_reset_requested', entityType: 'user', entityId: user.id });
+
+    res.json(successResponse);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/reset-password - Rate limited, no auth required
+router.post('/reset-password', passwordResetRateLimiter, async (req, res, next) => {
+  try {
+    const { token, newPassword } = resetPasswordSchema.parse(req.body);
+    const sqliteDb = getSqlite();
+    const db = getDatabase();
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const resetToken = sqliteDb.prepare(`
+      SELECT * FROM password_reset_tokens
+      WHERE token_hash = ? AND used_at IS NULL AND expires_at > datetime('now')
+    `).get(tokenHash) as { id: number; user_id: string; token_hash: string; expires_at: string; used_at: string | null } | undefined;
+
+    if (!resetToken) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    // Mark token as used
+    sqliteDb.prepare(`UPDATE password_reset_tokens SET used_at = datetime('now') WHERE id = ?`)
+      .run(resetToken.id);
+
+    // Update user password
+    const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+    db.update(users)
+      .set({ passwordHash: newHash, mustChangePassword: false })
+      .where(eq(users.id, resetToken.user_id))
+      .run();
+
+    logAudit(req, { action: 'auth.password_reset_completed', entityType: 'user', entityId: resetToken.user_id });
+
+    res.json({ message: 'Password has been reset successfully' });
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

@@ -10,6 +10,7 @@ import { generalRateLimiter } from './middleware/rateLimiter.js';
 import authRoutes from './routes/auth.js';
 import ordersRoutes from './routes/orders.js';
 import staffRoutes from './routes/staff.js';
+import adminRoutes from './routes/admin.js';
 import notificationsRoutes from './routes/notifications.js';
 import proxyRoutes from './routes/proxy.js';
 import { generateCsrfToken } from './middleware/csrf.js';
@@ -77,6 +78,7 @@ app.get('/api/csrf-token', generateCsrfToken);
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/staff', staffRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/proxy', proxyRoutes);
 

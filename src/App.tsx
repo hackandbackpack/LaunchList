@@ -13,6 +13,10 @@ import HelpPage from "./pages/HelpPage";
 import StaffLoginPage from "./pages/staff/StaffLoginPage";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffRequestDetail from "./pages/staff/StaffRequestDetail";
+import ChangePasswordPage from "./pages/staff/ChangePasswordPage";
+import ForgotPasswordPage from "./pages/staff/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/staff/ResetPasswordPage";
+import AdminPage from "./pages/staff/AdminPage";
 import NotFound from "./pages/NotFound";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -40,6 +44,14 @@ const App = () => (
             <Route path="/staff/request/:id" element={
               <ErrorBoundary fallbackMessage="Failed to load order details.">
                 <StaffRequestDetail />
+              </ErrorBoundary>
+            } />
+            <Route path="/staff/change-password" element={<ChangePasswordPage />} />
+            <Route path="/staff/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/staff/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/staff/admin" element={
+              <ErrorBoundary fallbackMessage="The admin panel encountered an error.">
+                <AdminPage />
               </ErrorBoundary>
             } />
             <Route path="*" element={<NotFound />} />

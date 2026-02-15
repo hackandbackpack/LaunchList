@@ -85,7 +85,7 @@ export async function sendDailyDigest() {
   const total = counts.submitted + counts.inProgress + counts.ready;
   if (total === 0 && staleOrders.length === 0 && stalePickups.length === 0) {
     await sendWebhook([{
-      title: 'ListPull Daily Digest',
+      title: 'LaunchList Daily Digest',
       description: 'No pending orders — all caught up!',
       color: COLORS.green,
       timestamp: new Date().toISOString(),
@@ -126,7 +126,7 @@ export async function sendDailyDigest() {
   }
 
   await sendWebhook([{
-    title: `ListPull Daily Digest — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+    title: `LaunchList Daily Digest — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
     description: `${total} total active order${total === 1 ? '' : 's'}`,
     color,
     fields,

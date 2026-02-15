@@ -1,7 +1,7 @@
 {
-  "name": "listpull-server",
+  "name": "LaunchList-server",
   "version": "1.0.0",
-  "description": "ListPull self-hosted backend",
+  "description": "LaunchList self-hosted backend",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

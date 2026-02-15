@@ -65,6 +65,8 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   role: text('role').$type<UserRole>().notNull().default('staff'),
+  mustChangePassword: integer('must_change_password', { mode: 'boolean' }).default(false),
+  createdBy: text('created_by'),
   createdAt: text('created_at').notNull(),
 });
 
@@ -76,6 +78,16 @@ export const tokenBlacklist = sqliteTable('token_blacklist', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   token: text('token').notNull(),
   expiresAt: text('expires_at').notNull(),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+// Password reset tokens
+export const passwordResetTokens = sqliteTable('password_reset_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id').notNull(),
+  tokenHash: text('token_hash').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  usedAt: text('used_at'),
   createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
 });
 
