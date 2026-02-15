@@ -242,6 +242,7 @@ export default function StaffDashboard() {
                 <p className="text-sm text-muted-foreground/70 mt-1">Orders will appear here when customers submit decklists.</p>
               </div>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -302,6 +303,7 @@ export default function StaffDashboard() {
                   </div>
                 </div>
               )}
+              </>
             )}
           </CardContent>
         </Card>
