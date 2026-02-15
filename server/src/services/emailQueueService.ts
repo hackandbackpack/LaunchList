@@ -1,4 +1,4 @@
-import { getDatabase } from '../db/index.js';
+import { getDatabase, getSqlite } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { sendConfirmationEmail, sendReadyEmail } from './emailService.js';
@@ -6,19 +6,28 @@ import { getOrderWithItems } from './orderService.js';
 
 const MAX_ATTEMPTS = 3;
 
+let processing = false;
+
 export function enqueueEmail(orderId: string, recipient: string, template: 'confirmation' | 'ready') {
   const db = getDatabase();
   db.insert(schema.emailQueue).values({ orderId, recipient, template }).run();
 }
 
-export function processEmailQueue() {
-  const db = getDatabase();
-  const pending = db.select().from(schema.emailQueue)
-    .where(eq(schema.emailQueue.status, 'pending'))
-    .all();
+export async function processEmailQueue() {
+  if (processing) return;
+  processing = true;
 
-  for (const entry of pending) {
-    processEmail(entry);
+  try {
+    const db = getDatabase();
+    const pending = db.select().from(schema.emailQueue)
+      .where(eq(schema.emailQueue.status, 'pending'))
+      .all();
+
+    for (const entry of pending) {
+      await processEmail(entry);
+    }
+  } finally {
+    processing = false;
   }
 }
 
@@ -30,10 +39,14 @@ async function processEmail(entry: typeof schema.emailQueue.$inferSelect) {
 
     const { order, lineItems } = result;
 
+    let sent = false;
     if (entry.template === 'confirmation') {
-      await sendConfirmationEmail(order, lineItems);
+      sent = await sendConfirmationEmail(order, lineItems);
     } else if (entry.template === 'ready') {
-      await sendReadyEmail(order, lineItems);
+      sent = await sendReadyEmail(order, lineItems);
+    }
+    if (!sent) {
+      throw new Error('Email delivery failed or SMTP not configured');
     }
 
     db.update(schema.emailQueue)
@@ -49,6 +62,14 @@ async function processEmail(entry: typeof schema.emailQueue.$inferSelect) {
       .where(eq(schema.emailQueue.id, entry.id))
       .run();
   }
+}
+
+export function cleanupOldEmails() {
+  const db = getDatabase();
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  getSqlite().prepare(
+    `DELETE FROM email_queue WHERE status IN ('sent', 'failed') AND created_at < ?`
+  ).run(cutoff);
 }
 
 export function startEmailProcessor() {

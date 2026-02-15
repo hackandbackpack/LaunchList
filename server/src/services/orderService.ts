@@ -1,8 +1,18 @@
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { eq, and, desc } from 'drizzle-orm';
 import { getDatabase, getSqlite } from '../db/index.js';
 import { deckRequests, deckLineItems, DeckRequest, DeckLineItem, NewDeckRequest, NewDeckLineItem, GameType, RequestStatus, NotifyMethod } from '../db/schema.js';
+import * as schema from '../db/schema.js';
 import { config } from '../config.js';
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  submitted: ['in_progress', 'cancelled'],
+  in_progress: ['ready', 'submitted', 'cancelled'],
+  ready: ['picked_up', 'cancelled'],
+  picked_up: [],
+  cancelled: [],
+};
 
 interface LineItemInput {
   quantity: number;
@@ -30,9 +40,10 @@ function generateOrderNumber(): string {
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const day = now.getDate().toString().padStart(2, '0');
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No ambiguous chars (0/O, 1/I)
+  const bytes = crypto.randomBytes(6);
   let random = '';
   for (let i = 0; i < 6; i++) {
-    random += chars[Math.floor(Math.random() * chars.length)];
+    random += chars[bytes[i] % chars.length];
   }
   return `${config.orderPrefix}-${year}${month}${day}-${random}`;
 }
@@ -199,6 +210,13 @@ export function updateOrder(orderId: string, updates: UpdateOrderInput): DeckReq
   };
 
   if (updates.status !== undefined) {
+    const currentOrder = db.select().from(schema.deckRequests).where(eq(schema.deckRequests.id, orderId)).get();
+    if (currentOrder) {
+      const allowed = VALID_TRANSITIONS[currentOrder.status] || [];
+      if (!allowed.includes(updates.status)) {
+        throw new Error(`Cannot transition from '${currentOrder.status}' to '${updates.status}'`);
+      }
+    }
     updateData.status = updates.status;
     // Reset alert flags on status transitions
     if (updates.status === 'in_progress') {

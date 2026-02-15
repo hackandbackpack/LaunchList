@@ -16,7 +16,7 @@ import logo from '@/assets/logo.png';
 
 const loginSchema = z.object({
   email: z.string().trim().email('Invalid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -46,9 +46,7 @@ export default function StaffLoginPage() {
     }
 
     const destination = mustChangePassword ? '/staff/change-password' : '/staff/dashboard';
-    setTimeout(() => {
-      navigate(destination);
-    }, 500);
+    navigate(destination);
   };
 
   return (

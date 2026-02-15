@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config.js';
 import { DeckRequest, DeckLineItem, ConditionVariant } from '../db/schema.js';
+import { escapeHtml } from '../utils/html.js';
 
 interface EmailOptions {
   to: string;
@@ -33,20 +34,6 @@ function getTransporter(): nodemailer.Transporter | null {
   return transporter;
 }
 
-/**
- * Escape HTML special characters to prevent XSS in email templates
- */
-function escapeHtml(text: string): string {
-  const htmlEscapes: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#x27;',
-  };
-  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
-}
-
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   const transport = getTransporter();
 
@@ -67,6 +54,19 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     return true;
   } catch (err) {
     console.error('Failed to send email:', err instanceof Error ? err.message : 'Unknown error');
+    return false;
+  }
+}
+
+export async function verifySmtpConnection(): Promise<boolean> {
+  const transport = getTransporter();
+  if (!transport) return false;
+  try {
+    await transport.verify();
+    console.log('SMTP connection verified');
+    return true;
+  } catch (err) {
+    console.error('SMTP verification failed:', err instanceof Error ? err.message : err);
     return false;
   }
 }
@@ -128,13 +128,14 @@ export async function sendConfirmationEmail(
   const safeStoreAddress = config.store.address ? escapeHtml(config.store.address) : '';
   const safeStorePhone = config.store.phone ? escapeHtml(config.store.phone) : '';
 
-  const subject = `Order Confirmation - ${safeOrderNumber}`;
+  const subject = `Order Confirmation - ${order.orderNumber}`;
 
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h1 style="color: #333;">Order Received!</h1>
@@ -200,7 +201,7 @@ export async function sendReadyEmail(
   const safeStoreEmail = config.store.email ? escapeHtml(config.store.email) : '';
   const safeStorePhone = config.store.phone ? escapeHtml(config.store.phone) : '';
 
-  const subject = `Your Order is Ready! - ${safeOrderNumber}`;
+  const subject = `Your Order is Ready! - ${order.orderNumber}`;
 
   // Calculate total if available
   let totalSection = '';
@@ -217,6 +218,7 @@ export async function sendReadyEmail(
     <html>
     <head>
       <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h1 style="color: #2e7d32;">Your Order is Ready!</h1>

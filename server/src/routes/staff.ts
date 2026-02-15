@@ -40,14 +40,18 @@ router.get('/orders', (req, res, next) => {
 
 // GET /api/staff/orders/:id - Get order details with line items
 router.get('/orders/:id', (req, res, next) => {
-  const { id } = req.params;
-  const result = getOrderWithItems(id);
+  try {
+    const { id } = req.params;
+    const result = getOrderWithItems(id);
 
-  if (!result) {
-    return next(createError('Order not found', 404, 'ORDER_NOT_FOUND'));
+    if (!result) {
+      return next(createError('Order not found', 404, 'ORDER_NOT_FOUND'));
+    }
+
+    res.json(result);
+  } catch (err) {
+    next(err);
   }
-
-  res.json(result);
 });
 
 const updateOrderSchema = z.object({
@@ -84,7 +88,13 @@ router.patch('/orders/:id', (req, res, next) => {
 const updateLineItemSchema = z.object({
   quantityFound: z.number().int().min(0).optional(),
   unitPrice: z.number().min(0).optional(),
-  conditionVariants: z.string().optional(),
+  conditionVariants: z.string().optional().refine(
+    (val) => {
+      if (!val) return true;
+      try { JSON.parse(val); return true; } catch { return false; }
+    },
+    { message: 'conditionVariants must be valid JSON' }
+  ),
   cardName: z.string().min(1).max(200).optional(),
 });
 
@@ -121,44 +131,52 @@ router.patch('/orders/:orderId/items/:itemId', (req, res, next) => {
 
 // DELETE /api/staff/orders/:orderId/items/:itemId - Delete line item
 router.delete('/orders/:orderId/items/:itemId', (req, res, next) => {
-  const { orderId, itemId } = req.params;
+  try {
+    const { orderId, itemId } = req.params;
 
-  // Verify order exists
-  const order = getOrderById(orderId);
-  if (!order) {
-    return next(createError('Order not found', 404, 'ORDER_NOT_FOUND'));
+    // Verify order exists
+    const order = getOrderById(orderId);
+    if (!order) {
+      return next(createError('Order not found', 404, 'ORDER_NOT_FOUND'));
+    }
+
+    // Verify item exists and belongs to order
+    const item = getLineItemById(itemId);
+    if (!item || item.deckRequestId !== orderId) {
+      return next(createError('Line item not found', 404, 'ITEM_NOT_FOUND'));
+    }
+
+    const deleted = deleteLineItem(itemId);
+    if (!deleted) {
+      return next(createError('Failed to delete line item', 500));
+    }
+
+    logAudit(req, {
+      action: 'lineitem.delete',
+      entityType: 'lineitem',
+      entityId: itemId,
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
   }
-
-  // Verify item exists and belongs to order
-  const item = getLineItemById(itemId);
-  if (!item || item.deckRequestId !== orderId) {
-    return next(createError('Line item not found', 404, 'ITEM_NOT_FOUND'));
-  }
-
-  const deleted = deleteLineItem(itemId);
-  if (!deleted) {
-    return next(createError('Failed to delete line item', 500));
-  }
-
-  logAudit(req, {
-    action: 'lineitem.delete',
-    entityType: 'lineitem',
-    entityId: itemId,
-  });
-  res.json({ success: true });
 });
 
 // GET /api/staff/orders/:orderId/items - Get all line items for an order
 router.get('/orders/:orderId/items', (req, res, next) => {
-  const { orderId } = req.params;
+  try {
+    const { orderId } = req.params;
 
-  const order = getOrderById(orderId);
-  if (!order) {
-    return next(createError('Order not found', 404, 'ORDER_NOT_FOUND'));
+    const order = getOrderById(orderId);
+    if (!order) {
+      return next(createError('Order not found', 404, 'ORDER_NOT_FOUND'));
+    }
+
+    const items = getLineItemsByOrderId(orderId);
+    res.json({ lineItems: items });
+  } catch (err) {
+    next(err);
   }
-
-  const items = getLineItemsByOrderId(orderId);
-  res.json({ lineItems: items });
 });
 
 export default router;

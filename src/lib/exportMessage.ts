@@ -1,6 +1,7 @@
 // Generate customer message for order pickup
 
 import type { DeckLineItem, ConditionVariant } from './types';
+import { CONFIG } from './config';
 
 interface InventoryItem {
   quantityFound: number | null;
@@ -70,7 +71,7 @@ export function generateCustomerMessage({
   const lines: string[] = [];
   lines.push(`Hi ${customerName}!`);
   lines.push('');
-  lines.push(`Your order ${orderNumber} is ready for pickup at Blast Off Gaming.`);
+  lines.push(`Your order ${orderNumber} is ready for pickup at ${CONFIG.store.name}.`);
   lines.push('');
 
   if (foundItems.length > 0) {

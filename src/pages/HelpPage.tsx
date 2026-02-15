@@ -1,3 +1,4 @@
+import { Mail, Phone, MapPin } from 'lucide-react';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -130,9 +131,9 @@ export default function HelpPage() {
                 Visit us at <strong>{CONFIG.store.name}</strong> or reach out:
               </p>
               <ul className="space-y-2 text-muted-foreground">
-                <li>📧 Email: {CONFIG.store.email}</li>
-                <li>📞 Phone: {CONFIG.store.phone}</li>
-                <li>📍 Address: {CONFIG.store.address}</li>
+                <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> {CONFIG.store.email}</li>
+                <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> {CONFIG.store.phone}</li>
+                <li className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {CONFIG.store.address}</li>
               </ul>
             </CardContent>
           </Card>

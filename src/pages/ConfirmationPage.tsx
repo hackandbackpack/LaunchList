@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import { PageLayout } from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
 import { GameBadge } from '@/components/GameBadge';
@@ -117,6 +118,29 @@ export default function ConfirmationPage() {
               <div className="h-4 bg-secondary rounded w-3/4 mx-auto" />
             </div>
           </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (!email && !loading) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto px-4 py-12 max-w-lg text-center">
+          <h2 className="text-xl font-semibold mb-4">Verify Your Order</h2>
+          <p className="text-muted-foreground mb-6">Enter the email address you used when submitting your order.</p>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const inputEmail = formData.get('email') as string;
+            if (inputEmail) {
+              sessionStorage.setItem('confirmationEmail', inputEmail);
+              window.location.reload();
+            }
+          }}>
+            <Input name="email" type="email" placeholder="your@email.com" required className="mb-4" />
+            <Button type="submit">Verify</Button>
+          </form>
         </div>
       </PageLayout>
     );

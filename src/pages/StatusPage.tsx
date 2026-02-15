@@ -152,39 +152,41 @@ export default function StatusPage() {
           {/* Search Form */}
           <Card className="glow-card mb-8 animate-slide-up">
             <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="orderNumber">Order Number</Label>
-                    <Input
-                      id="orderNumber"
-                      placeholder="LP-XXXXXXXX"
-                      value={orderNumber}
-                      onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
-                      className="font-mono"
-                    />
+              <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="orderNumber">Order Number</Label>
+                      <Input
+                        id="orderNumber"
+                        placeholder="LP-XXXXXXXX"
+                        value={orderNumber}
+                        onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
+                        className="font-mono"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full"
+                    variant="hero"
+                  >
+                    <Search className="mr-2 h-4 w-4" />
+                    {loading ? 'Searching...' : 'Find Order'}
+                  </Button>
                 </div>
-                <Button
-                  onClick={handleSearch}
-                  disabled={loading}
-                  className="w-full"
-                  variant="hero"
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  {loading ? 'Searching...' : 'Find Order'}
-                </Button>
-              </div>
+              </form>
             </CardContent>
           </Card>
 

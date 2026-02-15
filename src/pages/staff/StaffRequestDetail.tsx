@@ -135,9 +135,11 @@ export default function StaffRequestDetail() {
   return (
     <div className="min-h-screen cosmic-bg">
       <header className="border-b border-border bg-card/80 backdrop-blur-lg sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Link to="/staff/dashboard"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button></Link>
-          <span className="font-mono text-primary">{request.order_number}</span>
+        <div className="container mx-auto px-4 py-4 flex flex-wrap items-center gap-2 sm:gap-4">
+          <Link to="/staff/dashboard"><Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Back</span>
+          </Button></Link>
+          <span className="font-mono text-primary text-sm sm:text-base">{request.order_number}</span>
           <StatusBadge status={request.status as RequestStatus} />
         </div>
       </header>

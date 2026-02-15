@@ -105,3 +105,9 @@ export const passwordResetRateLimiter = createRateLimiter({
   maxRequests: 3, // 3 reset requests per 15 minutes
   message: 'Too many password reset requests, please try again later',
 });
+
+export const proxyRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+  message: 'Too many card search requests',
+});

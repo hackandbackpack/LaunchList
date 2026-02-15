@@ -23,14 +23,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Trust proxy (for rate limiting behind reverse proxy)
-app.set('trust proxy', 1);
+app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) : (process.env.NODE_ENV === 'production' ? 1 : false));
 
 // CORS - restrictive by default
-const corsOrigin = config.corsOrigin || (
-  process.env.NODE_ENV === 'production'
-    ? false  // Deny all cross-origin in production unless configured
-    : true   // Allow all in development
-);
+const corsOrigin = config.corsOrigin || false;
 app.use(cors({
   origin: corsOrigin,
   credentials: true,
@@ -112,7 +108,22 @@ app.get('*', (req, res, next) => {
 // Error handler
 app.use(errorHandler);
 
-app.listen(config.port, () => {
+const server = app.listen(config.port, () => {
   console.log(`Server running on port ${config.port}`);
   startScheduler();
 });
+
+function shutdown() {
+  console.log('Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

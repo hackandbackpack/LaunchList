@@ -186,6 +186,7 @@ function cleanExpiredRecords() {
   sqlite.exec(`DELETE FROM token_blacklist WHERE expires_at < datetime('now')`);
   sqlite.exec(`DELETE FROM login_attempts WHERE attempted_at < datetime('now', '-1 day')`);
   sqlite.exec(`DELETE FROM password_reset_tokens WHERE expires_at < datetime('now')`);
+  sqlite.exec(`DELETE FROM email_queue WHERE status IN ('sent', 'failed') AND created_at < datetime('now', '-30 days')`);
 }
 
 export function getDatabase() {

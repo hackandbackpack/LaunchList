@@ -15,9 +15,9 @@ const COLORS = {
   red: 0xef4444,
 };
 
-async function sendWebhook(embeds: DiscordEmbed[]) {
+async function sendWebhook(embeds: DiscordEmbed[]): Promise<boolean> {
   const url = config.discord.webhookUrl;
-  if (!url) return;
+  if (!url) return false;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -26,19 +26,20 @@ async function sendWebhook(embeds: DiscordEmbed[]) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ embeds }),
       });
-      if (res.ok) return;
+      if (res.ok) return true;
       if (res.status === 429) {
         const retryAfter = parseInt(res.headers.get('Retry-After') || '5', 10);
         await new Promise(r => setTimeout(r, retryAfter * 1000));
         continue;
       }
       console.error(`Discord webhook failed: ${res.status} ${res.statusText}`);
-      return;
+      return false;
     } catch (err) {
       console.error('Discord webhook error:', err);
       if (attempt === 0) continue;
     }
   }
+  return false;
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -103,25 +104,37 @@ export async function sendDailyDigest() {
   ];
 
   if (staleOrders.length > 0) {
-    const lines = staleOrders.map(o =>
+    let lines = staleOrders.map(o =>
       `• **${o.order_number}** — "${o.customer_name}" — ${o.game} (submitted ${formatTimeAgo(o.created_at)})`
     ).join('\n');
+    let value = lines;
+    if (value.length > 1024) {
+      const truncated = value.substring(0, 994);
+      const lastNewline = truncated.lastIndexOf('\n');
+      value = truncated.substring(0, lastNewline > 0 ? lastNewline : 994) + '\n...and more';
+    }
     fields.push({
       name: `⚠️ ${staleOrders.length} order${staleOrders.length === 1 ? '' : 's'} over ${staleHours} hours old`,
-      value: lines.substring(0, 1024),
+      value,
     });
   }
 
   if (stalePickups.length > 0) {
-    const lines = stalePickups.map(o => {
+    let lines = stalePickups.map(o => {
       const contact = o.phone
         ? `${o.email} / ${o.phone}`
         : o.email;
       return `• **${o.order_number}** — "${o.customer_name}" — ${o.game} (ready since ${formatDate(o.updated_at)})\n  Contact: ${contact}`;
     }).join('\n');
+    let value = lines;
+    if (value.length > 1024) {
+      const truncated = value.substring(0, 994);
+      const lastNewline = truncated.lastIndexOf('\n');
+      value = truncated.substring(0, lastNewline > 0 ? lastNewline : 994) + '\n...and more';
+    }
     fields.push({
       name: `📦 ${stalePickups.length} order${stalePickups.length === 1 ? '' : 's'} waiting for pickup over ${holdDays} days`,
-      value: lines.substring(0, 1024),
+      value,
     });
   }
 
@@ -154,7 +167,7 @@ export async function checkStaleOrders() {
       `SELECT COUNT(*) as c FROM deck_line_items WHERE deck_request_id = ?`
     ).get(order.id) as { c: number }).c;
 
-    await sendWebhook([{
+    const sent = await sendWebhook([{
       title: `🚨 Order ${order.order_number} has been waiting over ${staleHours} hours`,
       description: '',
       color: COLORS.red,
@@ -168,8 +181,10 @@ export async function checkStaleOrders() {
       timestamp: new Date().toISOString(),
     }]);
 
-    // Mark as alerted
-    sqlite.prepare(`UPDATE deck_requests SET stale_alert_sent = 1 WHERE id = ?`).run(order.id);
+    // Only mark as alerted if webhook succeeded
+    if (sent) {
+      sqlite.prepare(`UPDATE deck_requests SET stale_alert_sent = 1 WHERE id = ?`).run(order.id);
+    }
   }
 
   // Stale pickups (not yet alerted)
@@ -183,7 +198,7 @@ export async function checkStaleOrders() {
   `).all(`-${holdDays} days`) as { id: string; order_number: string; customer_name: string; email: string; phone: string | null; game: string; updated_at: string }[];
 
   for (const order of stalePickups) {
-    await sendWebhook([{
+    const sent = await sendWebhook([{
       title: `📦 Order ${order.order_number} waiting for pickup over ${holdDays} days`,
       description: '',
       color: COLORS.red,
@@ -196,6 +211,8 @@ export async function checkStaleOrders() {
       timestamp: new Date().toISOString(),
     }]);
 
-    sqlite.prepare(`UPDATE deck_requests SET pickup_alert_sent = 1 WHERE id = ?`).run(order.id);
+    if (sent) {
+      sqlite.prepare(`UPDATE deck_requests SET pickup_alert_sent = 1 WHERE id = ?`).run(order.id);
+    }
   }
 }

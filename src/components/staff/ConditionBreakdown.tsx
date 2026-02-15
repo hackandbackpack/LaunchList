@@ -132,13 +132,13 @@ export function ConditionBreakdown({
         >
           {/* Existing variants */}
           {variants.map((variant, index) => (
-            <div key={index} className="flex items-center gap-2">
-              {/* Condition select/display */}
+            <div key={index} className="flex flex-wrap items-center gap-2">
+              {/* Condition select - full width on mobile */}
               <Select
                 value={variant.condition}
                 onValueChange={(value) => handleUpdateVariant(index, 'condition', value)}
               >
-                <SelectTrigger className="w-40 h-7 text-xs">
+                <SelectTrigger className="w-full sm:w-40 h-7 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -155,50 +155,53 @@ export function ConditionBreakdown({
                 </SelectContent>
               </Select>
 
-              {/* Quantity input */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground">Qty:</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={quantityFound}
-                  value={variant.quantity}
-                  onChange={(e) => handleUpdateVariant(index, 'quantity', e.target.value)}
-                  className="w-14 h-7 text-xs font-mono"
-                />
-              </div>
-
-              {/* Price input */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground">@</span>
-                <div className="relative">
-                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+              {/* Qty + Price + Total + Delete - in a row */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {/* Quantity input */}
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Qty:</span>
                   <Input
                     type="number"
-                    min={0}
-                    step={0.01}
-                    value={variant.price || ''}
-                    onChange={(e) => handleUpdateVariant(index, 'price', e.target.value)}
-                    placeholder="0.00"
-                    className="w-20 h-7 text-xs font-mono pl-4"
+                    min={1}
+                    max={quantityFound}
+                    value={variant.quantity}
+                    onChange={(e) => handleUpdateVariant(index, 'quantity', e.target.value)}
+                    className="w-14 h-7 text-xs font-mono"
                   />
                 </div>
+
+                {/* Price input */}
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">@</span>
+                  <div className="relative">
+                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={variant.price || ''}
+                      onChange={(e) => handleUpdateVariant(index, 'price', e.target.value)}
+                      placeholder="0.00"
+                      className="w-20 h-7 text-xs font-mono pl-4"
+                    />
+                  </div>
+                </div>
+
+                {/* Line total */}
+                <span className="text-xs font-mono text-green-500 w-16 text-right">
+                  ${(variant.quantity * variant.price).toFixed(2)}
+                </span>
+
+                {/* Remove button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-destructive hover:text-destructive"
+                  onClick={() => handleRemoveVariant(index)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
               </div>
-
-              {/* Line total */}
-              <span className="text-xs font-mono text-green-500 w-16 text-right">
-                ${(variant.quantity * variant.price).toFixed(2)}
-              </span>
-
-              {/* Remove button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-destructive hover:text-destructive"
-                onClick={() => handleRemoveVariant(index)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
             </div>
           ))}
 

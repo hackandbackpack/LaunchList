@@ -1,16 +1,6 @@
 import { sendEmail } from './emailService.js';
 import { config } from '../config.js';
-
-function escapeHtml(text: string): string {
-  const htmlEscapes: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#x27;',
-  };
-  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
-}
+import { escapeHtml } from '../utils/html.js';
 
 export async function sendWelcomeEmail(email: string, loginUrl: string): Promise<boolean> {
   const safeStoreName = escapeHtml(config.store.name);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Lock } from 'lucide-react';
 import { z } from 'zod';
@@ -16,7 +16,7 @@ import { CONFIG } from '@/lib/config';
 import logo from '@/assets/logo.png';
 
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(8, 'Current password is required'),
+  currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(12, 'New password must be at least 12 characters'),
   confirmPassword: z.string().min(1, 'Please confirm your new password'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -28,7 +28,7 @@ type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
-  const { user, clearMustChangePassword } = useAuth();
+  const { user, loading: authLoading, clearMustChangePassword } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -39,10 +39,13 @@ export default function ChangePasswordPage() {
     resolver: zodResolver(changePasswordSchema),
   });
 
-  if (!user) {
-    navigate('/staff/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/staff/login');
+    }
+  }, [authLoading, user, navigate]);
+
+  if (authLoading || !user) return null;
 
   const onSubmit = async (data: ChangePasswordFormData) => {
     setLoading(true);

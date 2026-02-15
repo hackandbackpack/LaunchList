@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DecklistInput } from '@/components/DecklistInput';
@@ -25,7 +25,7 @@ const submitSchema = z.object({
   phone: z.string().trim()
     .min(1, 'Phone number is required')
     .max(20, 'Phone too long')
-    .regex(/^\d{3}[-.]?\d{3}[-.]?\d{4}$/, 'Enter a valid phone number (e.g., 555.867.5309)'),
+    .regex(/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/, 'Enter a valid phone number (e.g., 555-867-5309)'),
   notifyMethod: z.literal('email'),
   game: z.enum(['magic', 'onepiece', 'pokemon', 'other']),
   format: z.string().trim().max(100, 'Format too long').optional(),
@@ -204,23 +204,9 @@ export default function SubmitPage() {
                   )}
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Label>Notification Preference</Label>
-                  <RadioGroup
-                    defaultValue="email"
-                    className="flex gap-6"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="email" id="email-notify" checked />
-                      <Label htmlFor="email-notify" className="cursor-pointer">Email</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 opacity-50">
-                      <RadioGroupItem value="sms" id="sms-notify" disabled />
-                      <Label htmlFor="sms-notify" className="text-muted-foreground">
-                        Text Message (Coming Soon)
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                  <p className="text-sm text-muted-foreground">We'll notify you by email when your order is ready.</p>
                 </div>
               </CardContent>
             </Card>
@@ -408,9 +394,9 @@ export default function SubmitPage() {
                             <td className="py-2 px-2">{card.cardName}</td>
                             <td className="py-2 px-2 text-right">
                               {card.parseConfidence === 1 ? (
-                                <span className="text-green-400">✓</span>
+                                <span className="text-green-400" role="img" aria-label="Parsed successfully">&#x2713;</span>
                               ) : (
-                                <span className="text-yellow-400">⚠</span>
+                                <span className="text-yellow-400" role="img" aria-label="Low confidence parse">&#x26A0;</span>
                               )}
                             </td>
                           </tr>
@@ -423,11 +409,12 @@ export default function SubmitPage() {
             )}
 
             {/* Submit */}
-            <div className="flex justify-end">
+            <div className="flex justify-center sm:justify-end">
               <Button
                 type="submit"
                 variant="hero"
                 size="lg"
+                className="w-full sm:w-auto"
                 disabled={isSubmitting || parsedCards.length === 0}
               >
                 {isSubmitting ? (

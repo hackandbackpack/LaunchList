@@ -13,6 +13,9 @@ export function Footer() {
           </div>
           
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Link to="/submit" className="hover:text-foreground transition-colors">
+              Submit Decklist
+            </Link>
             <Link to="/help" className="hover:text-foreground transition-colors">
               Help
             </Link>

@@ -6,12 +6,20 @@ let lastStaleCheck = 0;
 
 function getCurrentHourInTimezone(timezone: string): { hour: number; dateStr: string } {
   const now = new Date();
-  const formatted = now.toLocaleString('en-US', { timeZone: timezone, hour12: false });
-  const parts = formatted.split(', ');
-  const timeParts = parts[1]?.split(':') || [];
+  const hourFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    hour12: false,
+  });
+  const dateFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
   return {
-    hour: parseInt(timeParts[0] || '0', 10),
-    dateStr: parts[0] || '',
+    hour: parseInt(hourFormatter.format(now), 10),
+    dateStr: dateFormatter.format(now),
   };
 }
 

@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
-import { getDatabase } from '../db/index.js';
+import { getDatabase, getSqlite } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { requireAuth, requireAdmin, AuthRequest } from '../middleware/auth.js';
 import { logAudit } from '../services/auditService.js';
@@ -19,7 +19,10 @@ router.use(requireAuth, requireAdmin);
 
 const createUserSchema = z.object({
   email: z.string().email().max(254),
-  password: z.string().min(12).max(128),
+  password: z.string().min(12).max(128).refine(
+    (pw) => /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw),
+    { message: 'Password must contain uppercase, lowercase, and a number' }
+  ),
   role: z.enum(['admin', 'staff']).default('staff'),
 });
 
@@ -112,6 +115,9 @@ router.delete('/users/:id', (req: AuthRequest, res, next) => {
     }
 
     db.delete(users).where(eq(users.id, userId)).run();
+
+    // Clean up password reset tokens for deleted user
+    getSqlite().prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(userId);
 
     logAudit(req, {
       action: 'admin.delete_user',

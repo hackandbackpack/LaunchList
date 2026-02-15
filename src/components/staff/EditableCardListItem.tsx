@@ -350,34 +350,31 @@ export function EditableCardListItem({
   const cardContent = (
     <div
       className={cn(
-        "flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-secondary/50 transition-colors group",
+        "flex flex-wrap items-center gap-2 py-2 px-3 rounded-lg hover:bg-secondary/50 transition-colors group",
         isNotFound && "bg-destructive/10 border border-destructive/30",
         inventoryStatus === 'none' && "opacity-60"
       )}
     >
-      {/* Status Icon */}
+      {/* Row 1: Status + Quantity + Card Name + Edit */}
       <StatusIcon />
 
-      {/* Quantity and Card Name */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className="font-mono text-sm text-muted-foreground w-8 shrink-0">
-          {quantity}×
-        </span>
-        <span className={cn(
-          "truncate flex-1",
-          hasPricing && "group-hover:text-primary transition-colors",
-          isNotFound && "text-destructive"
-        )}>
-          {cardName}
-        </span>
-        {isNotFound && (
-          <span className="text-xs text-destructive shrink-0">Not found</span>
-        )}
-        {hasPricing && !isNotFound && cardUrl && (
-          <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-        )}
-      </div>
-      
+      <span className="font-mono text-sm text-muted-foreground w-8 shrink-0">
+        {quantity}×
+      </span>
+      <span className={cn(
+        "truncate flex-1 min-w-0",
+        hasPricing && "group-hover:text-primary transition-colors",
+        isNotFound && "text-destructive"
+      )}>
+        {cardName}
+      </span>
+      {isNotFound && (
+        <span className="text-xs text-destructive shrink-0">Not found</span>
+      )}
+      {hasPricing && !isNotFound && cardUrl && (
+        <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+      )}
+
       {/* Edit Button - Always visible on mobile, hover on desktop */}
       <Button
         size="icon"
@@ -388,72 +385,75 @@ export function EditableCardListItem({
         <Pencil className="h-3.5 w-3.5" />
       </Button>
 
-      {/* Found Quantity Selector */}
-      <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-        <Select
-          value={quantityFound === null ? 'unchecked' : quantityFound.toString()}
-          onValueChange={handleQuantityFoundChange}
-        >
-          <SelectTrigger className="w-20 h-8 text-xs">
-            <SelectValue placeholder="—" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="unchecked">
-              <span className="text-muted-foreground">—</span>
-            </SelectItem>
-            {quantityOptions.map((num) => (
-              <SelectItem key={num} value={num.toString()}>
-                {num}
+      {/* Row 2: Inventory controls - wrap to second line on mobile */}
+      <div className="flex items-center gap-2 w-full sm:w-auto pl-12 sm:pl-0 sm:ml-auto">
+        {/* Found Quantity Selector */}
+        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+          <Select
+            value={quantityFound === null ? 'unchecked' : quantityFound.toString()}
+            onValueChange={handleQuantityFoundChange}
+          >
+            <SelectTrigger className="w-20 h-8 text-xs">
+              <SelectValue placeholder="—" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unchecked">
+                <span className="text-muted-foreground">—</span>
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Manual Price Input - hidden when using condition variants */}
-      {!hasConditionVariants && (
-        <div 
-          className="relative w-20 shrink-0" 
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        >
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-          <Input
-            type="text"
-            inputMode="decimal"
-            value={localPriceInput}
-            onChange={(e) => setLocalPriceInput(e.target.value)}
-            onBlur={handlePriceBlur}
-            placeholder="0.00"
-            className="h-8 text-xs pl-5 pr-2 font-mono"
-          />
+              {quantityOptions.map((num) => (
+                <SelectItem key={num} value={num.toString()}>
+                  {num}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
 
-      {/* Spacer when using condition variants */}
-      {hasConditionVariants && <div className="w-20 shrink-0" />}
-
-      {/* Line Total or API Reference */}
-      <div className="w-20 text-right shrink-0">
-        {lineTotalFormatted ? (
-          <span className="text-sm font-mono text-green-500">
-            ${lineTotalFormatted}
-          </span>
-        ) : apiPrice && hasPricing ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="text-xs font-mono text-muted-foreground/50 cursor-help">
-                ~${apiPrice}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>API reference price (not used in email)</p>
-            </TooltipContent>
-          </Tooltip>
-        ) : priceLoading ? (
-          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />
-        ) : (
-          <span className="text-xs text-muted-foreground/30">—</span>
+        {/* Manual Price Input - hidden when using condition variants */}
+        {!hasConditionVariants && (
+          <div
+            className="relative w-20 shrink-0"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+            <Input
+              type="text"
+              inputMode="decimal"
+              value={localPriceInput}
+              onChange={(e) => setLocalPriceInput(e.target.value)}
+              onBlur={handlePriceBlur}
+              placeholder="0.00"
+              className="h-8 text-xs pl-5 pr-2 font-mono"
+            />
+          </div>
         )}
+
+        {/* Spacer when using condition variants */}
+        {hasConditionVariants && <div className="w-20 shrink-0" />}
+
+        {/* Line Total or API Reference */}
+        <div className="w-20 text-right shrink-0">
+          {lineTotalFormatted ? (
+            <span className="text-sm font-mono text-green-500">
+              ${lineTotalFormatted}
+            </span>
+          ) : apiPrice && hasPricing ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs font-mono text-muted-foreground/50 cursor-help">
+                  ~${apiPrice}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>API reference price (not used in email)</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : priceLoading ? (
+            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />
+          ) : (
+            <span className="text-xs text-muted-foreground/30">—</span>
+          )}
+        </div>
       </div>
     </div>
   );

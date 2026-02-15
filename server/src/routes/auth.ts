@@ -24,7 +24,10 @@ const loginSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(8).max(128),
-  newPassword: z.string().min(12).max(128),
+  newPassword: z.string().min(12).max(128).refine(
+    (pw) => /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw),
+    { message: 'Password must contain uppercase, lowercase, and a number' }
+  ),
 });
 
 const requestResetSchema = z.object({
@@ -33,10 +36,13 @@ const requestResetSchema = z.object({
 
 const resetPasswordSchema = z.object({
   token: z.string().length(64),
-  newPassword: z.string().min(12).max(128),
+  newPassword: z.string().min(12).max(128).refine(
+    (pw) => /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw),
+    { message: 'Password must contain uppercase, lowercase, and a number' }
+  ),
 });
 
-const DUMMY_HASH = '$2b$10$K4GxSm1D6hZGKeixhFT4duMm5sY3N5Y3N5Y3N5Y3N5Y3N5Y3N5Y3O';
+const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 13);
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 
@@ -193,7 +199,7 @@ router.post('/request-reset', passwordResetRateLimiter, async (req, res, next) =
     const tokenHex = tokenBytes.toString('hex');
     const tokenHash = crypto.createHash('sha256').update(tokenHex).digest('hex');
 
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString().replace('T', ' ').replace('Z', '').slice(0, 19);
 
     sqliteDb.prepare(`
       INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, created_at)

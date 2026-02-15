@@ -3,8 +3,11 @@ import { z } from 'zod';
 import { createOrder, getOrderByNumberAndEmail, getOrderLineItems } from '../services/orderService.js';
 import { createError } from '../middleware/errorHandler.js';
 import { gameTypes } from '../db/schema.js';
-import { orderSubmitRateLimiter } from '../middleware/rateLimiter.js';
+import { orderSubmitRateLimiter, createRateLimiter } from '../middleware/rateLimiter.js';
 import { validateCsrf } from '../middleware/csrf.js';
+import { enqueueEmail } from '../services/emailQueueService.js';
+
+const lookupRateLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 20, message: 'Too many lookup attempts' });
 
 const router = Router();
 
@@ -37,6 +40,13 @@ router.post('/', orderSubmitRateLimiter, validateCsrf, async (req, res, next) =>
     const input = submitOrderSchema.parse(req.body);
     const result = await createOrder(input);
 
+    // Queue confirmation email
+    try {
+      enqueueEmail(result.order.id, result.order.email, 'confirmation');
+    } catch (emailErr) {
+      console.error('Failed to queue confirmation email:', emailErr);
+    }
+
     res.status(201).json({
       orderNumber: result.order.orderNumber,
       order: result.order,
@@ -53,7 +63,7 @@ const lookupSchema = z.object({
 });
 
 // POST /api/orders/lookup - Look up an order by order number and email
-router.post('/lookup', (req, res, next) => {
+router.post('/lookup', lookupRateLimiter, (req, res, next) => {
   try {
     const { orderNumber, email } = lookupSchema.parse(req.body);
     const order = getOrderByNumberAndEmail(orderNumber, email);
@@ -73,7 +83,7 @@ const getItemsSchema = z.object({
 });
 
 // GET /api/orders/:id/items - Get line items for an order (requires email verification)
-router.get('/:id/items', (req, res, next) => {
+router.get('/:id/items', lookupRateLimiter, (req, res, next) => {
   try {
     const { id } = req.params;
     const { email } = getItemsSchema.parse(req.query);

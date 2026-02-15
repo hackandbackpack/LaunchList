@@ -422,8 +422,8 @@ export function DeckCardList({ lineItems, game, deckRequestId, customerName, ord
       </CardHeader>
 
       <CardContent>
-        {/* Column Headers */}
-        <div className="flex items-center gap-2 py-2 px-3 text-xs text-muted-foreground border-b border-border mb-2">
+        {/* Column Headers - hidden on mobile since rows wrap */}
+        <div className="hidden sm:flex items-center gap-2 py-2 px-3 text-xs text-muted-foreground border-b border-border mb-2">
           <div className="w-4" /> {/* Status icon */}
           <div className="w-8">Qty</div>
           <div className="flex-1">Card Name</div>

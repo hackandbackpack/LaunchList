@@ -48,6 +48,8 @@ export default function StaffDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -62,15 +64,31 @@ export default function StaffDashboard() {
     if (isStaff) {
       fetchRequests();
     }
-  }, [isStaff]);
+  }, [isStaff, page]);
 
-  const fetchRequests = async () => {
+  // Reset to page 1 and refetch when status filter changes
+  useEffect(() => {
+    if (isStaff) {
+      setPage(1);
+      fetchRequests(1);
+    }
+  }, [statusFilter]);
+
+  const fetchRequests = async (pageNum = page) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await api.staff.getOrders({ limit: 100 });
+      const params: { limit: number; offset: number; status?: RequestStatus } = {
+        limit: 25,
+        offset: (pageNum - 1) * 25,
+      };
+      if (statusFilter !== 'all') {
+        params.status = statusFilter as RequestStatus;
+      }
+      const response = await api.staff.getOrders(params);
       setRequests(mapApiOrdersToFrontend(response.orders));
+      setTotalOrders(response.total);
     } catch {
       setError('Failed to load orders. Please try again.');
     } finally {
@@ -218,8 +236,10 @@ export default function StaffDashboard() {
                 Loading requests...
               </div>
             ) : filteredRequests.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                No requests found
+              <div className="text-center py-12">
+                <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground">No orders yet</p>
+                <p className="text-sm text-muted-foreground/70 mt-1">Orders will appear here when customers submit decklists.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -267,6 +287,21 @@ export default function StaffDashboard() {
                   </tbody>
                 </table>
               </div>
+              {totalOrders > 25 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                  <span className="text-sm text-muted-foreground">
+                    Showing {((page - 1) * 25) + 1}-{Math.min(page * 25, totalOrders)} of {totalOrders}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                      Previous
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page * 25 >= totalOrders}>
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             )}
           </CardContent>
         </Card>
