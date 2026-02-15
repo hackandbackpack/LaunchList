@@ -57,21 +57,21 @@ export function DeckCardList({ lineItems, game, deckRequestId, customerName, ord
   useEffect(() => {
     const newState = new Map<string, InventoryItem>();
     lineItems.forEach(item => {
-      // Parse condition_variants from the database (it comes as JSON or null)
+      // Parse conditionVariants from the database (it comes as JSON or null)
       let variants: ConditionVariant[] = [];
-      if (item.condition_variants) {
+      if (item.conditionVariants) {
         try {
-          variants = Array.isArray(item.condition_variants)
-            ? item.condition_variants
-            : JSON.parse(item.condition_variants as unknown as string);
+          variants = Array.isArray(item.conditionVariants)
+            ? item.conditionVariants
+            : JSON.parse(item.conditionVariants as unknown as string);
         } catch {
           variants = [];
         }
       }
 
       newState.set(item.id, {
-        quantityFound: item.quantity_found,
-        unitPrice: item.unit_price,
+        quantityFound: item.quantityFound,
+        unitPrice: item.unitPrice,
         conditionVariants: variants,
       });
     });
@@ -91,7 +91,7 @@ export function DeckCardList({ lineItems, game, deckRequestId, customerName, ord
       setError(null);
 
       try {
-        const cardNames = localItems.map(item => item.card_name);
+        const cardNames = localItems.map(item => item.cardName);
 
         let prices: Map<string, PriceMapEntry>;
         if (isMagic) {
@@ -141,9 +141,9 @@ export function DeckCardList({ lineItems, game, deckRequestId, customerName, ord
         if (missing > 0) {
           missingCards += missing;
           if (qtyFound === 0) {
-            missingItemsList.push(`${item.card_name} (0/${item.quantity})`);
+            missingItemsList.push(`${item.cardName} (0/${item.quantity})`);
           } else {
-            missingItemsList.push(`${item.card_name} (${qtyFound}/${item.quantity})`);
+            missingItemsList.push(`${item.cardName} (${qtyFound}/${item.quantity})`);
           }
         }
 
@@ -178,7 +178,7 @@ export function DeckCardList({ lineItems, game, deckRequestId, customerName, ord
       // Update local state immediately
       setLocalItems(prev =>
         prev.map(item =>
-          item.id === itemId ? { ...item, card_name: newCardName } : item
+          item.id === itemId ? { ...item, cardName: newCardName } : item
         )
       );
 
@@ -313,13 +313,13 @@ export function DeckCardList({ lineItems, game, deckRequestId, customerName, ord
 
   // Render a single card item (memoized to prevent unnecessary re-renders)
   const renderCardItem = useCallback((item: DeckLineItem) => {
-    const cardPriceData = priceMap.get(item.card_name.toLowerCase());
+    const cardPriceData = priceMap.get(item.cardName.toLowerCase());
     const inv = inventoryState.get(item.id);
     return (
       <EditableCardListItem
         key={item.id}
         id={item.id}
-        cardName={item.card_name}
+        cardName={item.cardName}
         quantity={item.quantity}
         game={game}
         cardData={cardPriceData?.card}

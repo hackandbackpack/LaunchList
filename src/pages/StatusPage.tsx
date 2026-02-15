@@ -21,40 +21,40 @@ const STATUS_STEPS = [
   { status: 'picked_up', label: 'Picked Up', icon: Truck, description: 'Order complete' },
 ];
 
-// Map API response (snake_case) to frontend type (snake_case matches)
+// Map API response to frontend type
 function mapApiOrderToFrontend(apiOrder: {
   id: string;
-  order_number: string;
-  customer_name: string;
+  orderNumber: string;
+  customerName: string;
   email: string;
   phone: string | null;
-  notify_method: string | null;
+  notifyMethod: string | null;
   game: string;
   format: string | null;
-  pickup_window: string | null;
+  pickupWindow: string | null;
   notes: string | null;
-  raw_decklist: string;
+  rawDecklist: string;
   status: string;
-  staff_notes: string | null;
-  estimated_total: number | null;
-  missing_items: string | null;
-  created_at: string;
-  updated_at: string;
+  staffNotes: string | null;
+  estimatedTotal: number | null;
+  missingItems: string | null;
+  createdAt: string;
+  updatedAt: string;
 }): DeckRequest {
   return apiOrder as DeckRequest;
 }
 
 function mapApiItemsToFrontend(apiItems: {
   id: string;
-  deck_request_id: string;
+  deckRequestId: string;
   quantity: number;
-  card_name: string;
-  parse_confidence: number | null;
-  line_raw: string;
-  quantity_found: number | null;
-  unit_price: number | null;
-  condition_variants: string | null;
-  created_at: string;
+  cardName: string;
+  parseConfidence: number | null;
+  lineRaw: string;
+  quantityFound: number | null;
+  unitPrice: number | null;
+  conditionVariants: string | null;
+  createdAt: string;
 }[]): DeckLineItem[] {
   return apiItems as DeckLineItem[];
 }
@@ -96,10 +96,10 @@ export default function StatusPage() {
       setRequest(foundRequest);
 
       // Store email in sessionStorage (not in URL for privacy)
-      sessionStorage.setItem(`order_email_${foundRequest.order_number}`, emailAddr.trim().toLowerCase());
+      sessionStorage.setItem(`order_email_${foundRequest.orderNumber}`, emailAddr.trim().toLowerCase());
 
       // Only store order number in URL, not email
-      setSearchParams({ order: foundRequest.order_number });
+      setSearchParams({ order: foundRequest.orderNumber });
 
       const itemsData = await api.orders.getLineItems(foundRequest.id, emailAddr.trim());
       setLineItems(mapApiItemsToFrontend(itemsData));
@@ -199,7 +199,7 @@ export default function StatusPage() {
                   <Card className="glow-card">
                     <CardHeader>
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <CardTitle className="font-mono text-primary">{request.order_number}</CardTitle>
+                        <CardTitle className="font-mono text-primary">{request.orderNumber}</CardTitle>
                         <StatusBadge status={request.status as RequestStatus} />
                       </div>
                     </CardHeader>
@@ -268,7 +268,7 @@ export default function StatusPage() {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <p className="text-muted-foreground">Customer</p>
-                          <p className="font-medium">{request.customer_name}</p>
+                          <p className="font-medium">{request.customerName}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Game</p>
@@ -283,7 +283,7 @@ export default function StatusPage() {
                         <div>
                           <p className="text-muted-foreground">Submitted</p>
                           <p className="font-medium">
-                            {new Date(request.created_at).toLocaleDateString()}
+                            {new Date(request.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>

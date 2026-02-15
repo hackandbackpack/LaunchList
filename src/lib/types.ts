@@ -5,22 +5,22 @@ export type AppRole = 'admin' | 'staff';
 
 export interface DeckRequest {
   id: string;
-  order_number: string;
-  created_at: string;
-  updated_at: string;
-  customer_name: string;
+  orderNumber: string;
+  createdAt: string;
+  updatedAt: string;
+  customerName: string;
   email: string;
   phone: string | null;
-  notify_method: NotifyMethod;
+  notifyMethod: NotifyMethod;
   game: GameType;
   format: string | null;
-  pickup_window: string | null;
+  pickupWindow: string | null;
   notes: string | null;
-  raw_decklist: string;
+  rawDecklist: string;
   status: RequestStatus;
-  staff_notes: string | null;
-  estimated_total: number | null;
-  missing_items: string | null;
+  staffNotes: string | null;
+  estimatedTotal: number | null;
+  missingItems: string | null;
 }
 
 export interface ConditionVariant {
@@ -31,22 +31,22 @@ export interface ConditionVariant {
 
 export interface DeckLineItem {
   id: string;
-  deck_request_id: string;
+  deckRequestId: string;
   quantity: number;
-  card_name: string;
-  parse_confidence: number | null;
-  line_raw: string;
-  created_at: string;
-  quantity_found: number | null;
-  unit_price: number | null;
-  condition_variants: ConditionVariant[] | null;
+  cardName: string;
+  parseConfidence: number | null;
+  lineRaw: string;
+  createdAt: string;
+  quantityFound: number | null;
+  unitPrice: number | null;
+  conditionVariants: ConditionVariant[] | null;
 }
 
 export interface UserRole {
   id: string;
-  user_id: string;
+  userId: string;
   role: AppRole;
-  created_at: string;
+  createdAt: string;
 }
 
 export const GAME_LABELS: Record<GameType, string> = {

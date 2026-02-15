@@ -68,7 +68,7 @@ export function groupCardsByColor(
   });
 
   for (const item of items) {
-    const cardData = cardDataMap.get(item.card_name.toLowerCase());
+    const cardData = cardDataMap.get(item.cardName.toLowerCase());
     const card = cardData?.card as ScryfallCard | null;
     const colorIdentity = card?.color_identity ?? [];
     const colorGroup = getColorGroup(colorIdentity);

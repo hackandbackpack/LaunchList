@@ -16,37 +16,37 @@ import type { DeckRequest, DeckLineItem, GameType, RequestStatus } from '@/lib/t
 // Map API response to frontend type
 function mapApiOrderToFrontend(apiOrder: {
   id: string;
-  order_number: string;
-  customer_name: string;
+  orderNumber: string;
+  customerName: string;
   email: string;
   phone: string | null;
-  notify_method: string | null;
+  notifyMethod: string | null;
   game: string;
   format: string | null;
-  pickup_window: string | null;
+  pickupWindow: string | null;
   notes: string | null;
-  raw_decklist: string;
+  rawDecklist: string;
   status: string;
-  staff_notes: string | null;
-  estimated_total: number | null;
-  missing_items: string | null;
-  created_at: string;
-  updated_at: string;
+  staffNotes: string | null;
+  estimatedTotal: number | null;
+  missingItems: string | null;
+  createdAt: string;
+  updatedAt: string;
 }): DeckRequest {
   return apiOrder as DeckRequest;
 }
 
 function mapApiItemsToFrontend(apiItems: {
   id: string;
-  deck_request_id: string;
+  deckRequestId: string;
   quantity: number;
-  card_name: string;
-  parse_confidence: number | null;
-  line_raw: string;
-  quantity_found: number | null;
-  unit_price: number | null;
-  condition_variants: string | null;
-  created_at: string;
+  cardName: string;
+  parseConfidence: number | null;
+  lineRaw: string;
+  quantityFound: number | null;
+  unitPrice: number | null;
+  conditionVariants: string | null;
+  createdAt: string;
 }[]): DeckLineItem[] {
   return apiItems as DeckLineItem[];
 }
@@ -189,7 +189,7 @@ export default function ConfirmationPage() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Order Number</p>
-                  <p className="text-2xl font-mono font-bold text-primary">{request.order_number}</p>
+                  <p className="text-2xl font-mono font-bold text-primary">{request.orderNumber}</p>
                 </div>
                 <Button variant="outline" onClick={copyOrderNumber}>
                   <Copy className="mr-2 h-4 w-4" />
@@ -211,7 +211,7 @@ export default function ConfirmationPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Customer</p>
-                  <p className="font-medium">{request.customer_name}</p>
+                  <p className="font-medium">{request.customerName}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Game</p>
@@ -234,12 +234,12 @@ export default function ConfirmationPage() {
                     <p className="font-medium">{request.format}</p>
                   </div>
                 )}
-                {request.pickup_window && (
+                {request.pickupWindow && (
                   <div>
                     <p className="text-muted-foreground">Pickup</p>
                     <p className="font-medium flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      {request.pickup_window}
+                      {request.pickupWindow}
                     </p>
                   </div>
                 )}
@@ -271,7 +271,7 @@ export default function ConfirmationPage() {
                     {lineItems.map((item) => (
                       <tr key={item.id} className="border-b border-border/50">
                         <td className="py-2 px-2 font-mono">{item.quantity}x</td>
-                        <td className="py-2 px-2">{item.card_name}</td>
+                        <td className="py-2 px-2">{item.cardName}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -303,7 +303,7 @@ export default function ConfirmationPage() {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-center">
-            <Link to={`/status?order=${request.order_number}`}>
+            <Link to={`/status?order=${request.orderNumber}`}>
               <Button variant="outline" className="w-full sm:w-auto">
                 Track Order Status
               </Button>

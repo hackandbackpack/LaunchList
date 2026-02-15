@@ -40,13 +40,13 @@ export function generateCustomerMessage({
     }
 
     if (qtyFound === 0) {
-      missingItems.push(`${item.card_name} (out of stock)`);
+      missingItems.push(`${item.cardName} (out of stock)`);
       continue;
     }
 
     const missing = item.quantity - qtyFound;
     if (missing > 0) {
-      missingItems.push(`${item.card_name} (requested ${item.quantity}, found ${qtyFound})`);
+      missingItems.push(`${item.cardName} (requested ${item.quantity}, found ${qtyFound})`);
     }
 
     // Calculate line price
@@ -58,11 +58,11 @@ export function generateCustomerMessage({
     }
 
     if (linePrice > 0) {
-      foundItems.push(`- ${qtyFound}x ${item.card_name} - $${linePrice.toFixed(2)}`);
+      foundItems.push(`- ${qtyFound}x ${item.cardName} - $${linePrice.toFixed(2)}`);
       totalPrice += linePrice;
       totalFound += qtyFound;
     } else {
-      foundItems.push(`- ${qtyFound}x ${item.card_name}`);
+      foundItems.push(`- ${qtyFound}x ${item.cardName}`);
       totalFound += qtyFound;
     }
   }

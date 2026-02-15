@@ -17,36 +17,36 @@ export type UserRole = (typeof userRoles)[number];
 // Deck request (order)
 export interface DeckRequest {
   id: string;
-  order_number: string;
-  customer_name: string;
+  orderNumber: string;
+  customerName: string;
   email: string;
   phone: string | null;
-  notify_method: NotifyMethod | null;
+  notifyMethod: NotifyMethod | null;
   game: GameType;
   format: string | null;
-  pickup_window: string | null;
+  pickupWindow: string | null;
   notes: string | null;
-  raw_decklist: string;
+  rawDecklist: string;
   status: RequestStatus;
-  staff_notes: string | null;
-  estimated_total: number | null;
-  missing_items: string | null;
-  created_at: string;
-  updated_at: string;
+  staffNotes: string | null;
+  estimatedTotal: number | null;
+  missingItems: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Deck line item
 export interface DeckLineItem {
   id: string;
-  deck_request_id: string;
+  deckRequestId: string;
   quantity: number;
-  card_name: string;
-  parse_confidence: number | null;
-  line_raw: string;
-  quantity_found: number | null;
-  unit_price: number | null;
-  condition_variants: string | null;
-  created_at: string;
+  cardName: string;
+  parseConfidence: number | null;
+  lineRaw: string;
+  quantityFound: number | null;
+  unitPrice: number | null;
+  conditionVariants: string | null;
+  createdAt: string;
 }
 
 // Condition variant structure

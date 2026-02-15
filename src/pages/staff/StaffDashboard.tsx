@@ -20,22 +20,22 @@ import type { DeckRequest, RequestStatus, GameType } from '@/lib/types';
 // Map API response to frontend type
 function mapApiOrdersToFrontend(apiOrders: Array<{
   id: string;
-  order_number: string;
-  customer_name: string;
+  orderNumber: string;
+  customerName: string;
   email: string;
   phone: string | null;
-  notify_method: string | null;
+  notifyMethod: string | null;
   game: string;
   format: string | null;
-  pickup_window: string | null;
+  pickupWindow: string | null;
   notes: string | null;
-  raw_decklist: string;
+  rawDecklist: string;
   status: string;
-  staff_notes: string | null;
-  estimated_total: number | null;
-  missing_items: string | null;
-  created_at: string;
-  updated_at: string;
+  staffNotes: string | null;
+  estimatedTotal: number | null;
+  missingItems: string | null;
+  createdAt: string;
+  updatedAt: string;
 }>): DeckRequest[] {
   return apiOrders as DeckRequest[];
 }
@@ -111,8 +111,8 @@ export default function StaffDashboard() {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
-      req.order_number.toLowerCase().includes(query) ||
-      req.customer_name.toLowerCase().includes(query) ||
+      req.orderNumber.toLowerCase().includes(query) ||
+      req.customerName.toLowerCase().includes(query) ||
       req.email.toLowerCase().includes(query)
     );
   });
@@ -259,11 +259,11 @@ export default function StaffDashboard() {
                     {filteredRequests.map((req) => (
                       <tr key={req.id} className="border-b border-border/50 hover:bg-secondary/30">
                         <td className="py-3 px-2">
-                          <span className="font-mono text-primary">{req.order_number}</span>
+                          <span className="font-mono text-primary">{req.orderNumber}</span>
                         </td>
                         <td className="py-3 px-2 hidden sm:table-cell">
                           <div>
-                            <p className="font-medium">{req.customer_name}</p>
+                            <p className="font-medium">{req.customerName}</p>
                             <p className="text-xs text-muted-foreground">{req.email}</p>
                           </div>
                         </td>
@@ -274,7 +274,7 @@ export default function StaffDashboard() {
                           <StatusBadge status={req.status as RequestStatus} />
                         </td>
                         <td className="py-3 px-2 hidden lg:table-cell text-muted-foreground">
-                          {new Date(req.created_at).toLocaleDateString()}
+                          {new Date(req.createdAt).toLocaleDateString()}
                         </td>
                         <td className="py-3 px-2 text-right">
                           <Link to={`/staff/request/${req.id}`}>
