@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Price Alerts - TCG Price Tracker{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <!-- Page header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gradient">Price Alerts</h1>
+            <p class="text-sm text-cosmic-400 mt-1">Triggered alerts from your watched cards</p>
+        </div>
+        {% if rows %}
+        <span class="text-sm text-cosmic-400">{{ rows|length }} alert{{ "s" if rows|length != 1 else "" }}</span>
+        {% endif %}
+    </div>
+
+    {% if rows %}
+    <div class="space-y-4">
+        {% for row in rows %}
+        <div class="glow-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4
+                    {% if row.alert.acknowledged %}opacity-60{% endif %}">
+            <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                    {% if not row.alert.acknowledged %}
+                    <span class="flex h-2.5 w-2.5 rounded-full bg-red-400 animate-pulse"></span>
+                    {% else %}
+                    <span class="flex h-2.5 w-2.5 rounded-full bg-cosmic-500"></span>
+                    {% endif %}
+
+                    <h3 class="text-base font-semibold text-cosmic-100">
+                        {% if row.product %}
+                        <a href="/card/{{ row.product.product_id }}" class="hover:text-nebula-purple transition-colors">
+                            {{ row.product.name }}
+                        </a>
+                        {% else %}
+                        Unknown Card
+                        {% endif %}
+                    </h3>
+
+                    {% if row.game %}
+                    <span class="badge-{{ row.game }}">{{ row.game }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-wrap items-center gap-4 text-sm text-cosmic-400 ml-5">
+                    <span>Variant: <span class="text-cosmic-200">{{ row.variant }}</span></span>
+                    <span>Threshold: <span class="text-cosmic-200">{{ row.alert.threshold_pct }}%</span></span>
+                    <span>Direction:
+                        {% if row.alert.direction == "up" %}
+                        <span class="text-green-400">Up</span>
+                        {% elif row.alert.direction == "down" %}
+                        <span class="text-red-400">Down</span>
+                        {% else %}
+                        <span class="text-cosmic-200">Both</span>
+                        {% endif %}
+                    </span>
+                    <span>Triggered:
+                        <span class="text-cosmic-200">
+                            {{ row.alert.triggered_at.strftime("%b %d, %Y at %I:%M %p") if row.alert.triggered_at else "--" }}
+                        </span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 sm:ml-4">
+                {% if row.alert.acknowledged %}
+                <span class="status-neutral">Acknowledged</span>
+                {% else %}
+                <form action="/alerts/{{ row.alert.id }}/acknowledge" method="post">
+                    <button type="submit" class="btn-primary text-xs px-3 py-1.5">Acknowledge</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- Empty state -->
+    <div class="glow-card p-12 text-center">
+        <svg class="w-16 h-16 mx-auto text-cosmic-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <h2 class="text-xl font-semibold text-cosmic-200 mb-2">No triggered alerts</h2>
+        <p class="text-cosmic-400 text-sm max-w-md mx-auto">
+            Alerts will appear here when price changes exceed your configured thresholds.
+            Set up alerts from your watchlist.
+        </p>
+        <a href="/watchlist" class="btn-primary mt-6 inline-flex">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+            View Watchlist
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+[Unit]
+Description=TCG Price Tracker
+After=network.target postgresql.service
+
+[Service]
+User=www-data
+WorkingDirectory=/opt/tcgapp/tcgapp
+ExecStart=/opt/tcgapp/tcgapp/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+EnvironmentFile=/opt/tcgapp/tcgapp/.env
+
+[Install]
+WantedBy=multi-user.target

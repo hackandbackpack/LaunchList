@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - TCG Price Tracker{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <!-- Page header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gradient">Dashboard</h1>
+            <p class="text-sm text-cosmic-400 mt-1">Market overview across all tracked games</p>
+        </div>
+        {% if alert_count > 0 %}
+        <a href="/alerts" class="relative btn-secondary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span>Alerts</span>
+            <span class="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-red-500 text-white">{{ alert_count }}</span>
+        </a>
+        {% endif %}
+    </div>
+
+    {% if stats %}
+    <!-- Game stat cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        {% for stat in stats %}
+        <a href="/search?game={{ stat.slug }}" class="stat-card group cursor-pointer">
+            <div class="flex items-center justify-between mb-3">
+                <span class="stat-label">{{ stat.name }}</span>
+                {% if stat.slug == "pokemon" %}
+                <div class="w-3 h-3 rounded-full bg-yellow-400/60"></div>
+                {% elif stat.slug == "magic" %}
+                <div class="w-3 h-3 rounded-full bg-blue-400/60"></div>
+                {% elif stat.slug == "onepiece" %}
+                <div class="w-3 h-3 rounded-full bg-red-400/60"></div>
+                {% elif stat.slug == "lorcana" %}
+                <div class="w-3 h-3 rounded-full bg-purple-400/60"></div>
+                {% else %}
+                <div class="w-3 h-3 rounded-full bg-cosmic-400/60"></div>
+                {% endif %}
+            </div>
+            <div class="stat-value">{{ "{:,}".format(stat.count) }}</div>
+            <p class="text-xs text-cosmic-400 mt-1 group-hover:text-cosmic-300 transition-colors">products tracked</p>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Price Movers -->
+    <div class="mb-10">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="section-title">Price Movers</h2>
+            <a href="/watchlist" class="text-sm text-cosmic-400 hover:text-nebula-purple transition-colors">View Watchlist</a>
+        </div>
+
+        {% if movers %}
+        <div class="glow-card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="table-dark">
+                    <thead>
+                        <tr>
+                            <th>Card</th>
+                            <th>Game</th>
+                            <th>Variant</th>
+                            <th class="text-right">Market Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mover in movers %}
+                        <tr>
+                            <td>
+                                <a href="/card/{{ mover.product_id }}" class="font-medium text-cosmic-100 hover:text-nebula-purple transition-colors">
+                                    {{ mover.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge-{{ mover.game }}">{{ mover.game }}</span>
+                            </td>
+                            <td class="text-cosmic-300">{{ mover.variant }}</td>
+                            <td class="text-right font-mono font-medium">
+                                {% if mover.market_price %}
+                                ${{ "%.2f"|format(mover.market_price) }}
+                                {% else %}
+                                <span class="text-cosmic-500">--</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="glow-card p-8 text-center">
+            <svg class="w-10 h-10 mx-auto text-cosmic-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <p class="text-cosmic-400 text-sm">No watched items yet.</p>
+            <p class="text-cosmic-500 text-xs mt-1">Add cards to your watchlist to track price movements.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <!-- Empty state -->
+    <div class="glow-card p-12 text-center mt-8">
+        <svg class="w-16 h-16 mx-auto text-cosmic-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+        <h2 class="text-xl font-semibold text-cosmic-200 mb-2">No data yet</h2>
+        <p class="text-cosmic-400 text-sm max-w-md mx-auto">
+            Run the seed script to populate categories and sample data, then use the search to start tracking cards.
+        </p>
+        <div class="mt-6 inline-block rounded-lg bg-cosmic-700/50 border border-cosmic-600/50 px-4 py-3">
+            <code class="text-sm text-cosmic-200 font-mono">python scripts/seed.py</code>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

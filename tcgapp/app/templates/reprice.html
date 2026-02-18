@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Repricing - TCG Price Tracker{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <!-- Page header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gradient">Inventory Repricing</h1>
+        <p class="text-sm text-cosmic-400 mt-1">Upload your TCGPlayer inventory CSV and apply a repricing strategy</p>
+    </div>
+
+    <!-- Upload form -->
+    <div class="glow-card p-6 mb-8">
+        <form action="/reprice/upload" method="post" enctype="multipart/form-data" id="reprice-form">
+
+            <!-- File upload area -->
+            <div class="mb-6">
+                <label class="input-label">Inventory CSV</label>
+                <div id="drop-zone"
+                     class="relative border-2 border-dashed border-cosmic-600 rounded-lg p-8 text-center transition-colors hover:border-nebula-purple/50 cursor-pointer"
+                     onclick="document.getElementById('csv-file').click()">
+                    <svg class="w-10 h-10 mx-auto text-cosmic-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    <p class="text-sm text-cosmic-300 mb-1">Drag and drop your CSV here, or click to browse</p>
+                    <p class="text-xs text-cosmic-500" id="file-name">No file selected</p>
+                    <input type="file" name="file" id="csv-file" accept=".csv" required class="hidden">
+                </div>
+            </div>
+
+            <!-- Strategy selection -->
+            <div class="mb-6">
+                <label class="input-label">Repricing Strategy</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+                    <label class="flex items-center gap-3 p-3 rounded-lg border border-cosmic-600 bg-cosmic-700/30 cursor-pointer transition-colors hover:border-nebula-purple/40 has-[:checked]:border-nebula-purple has-[:checked]:bg-nebula-purple/10">
+                        <input type="radio" name="strategy" value="MATCH_LOW"
+                               {% if strategy == "MATCH_LOW" %}checked{% endif %}
+                               class="w-4 h-4 text-nebula-purple accent-[hsl(270,100%,65%)]"
+                               onchange="toggleUndercutField()">
+                        <div>
+                            <p class="text-sm font-medium text-cosmic-100">Match TCG Low</p>
+                            <p class="text-xs text-cosmic-400">Set price to the lowest listing</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center gap-3 p-3 rounded-lg border border-cosmic-600 bg-cosmic-700/30 cursor-pointer transition-colors hover:border-nebula-purple/40 has-[:checked]:border-nebula-purple has-[:checked]:bg-nebula-purple/10">
+                        <input type="radio" name="strategy" value="UNDERCUT"
+                               {% if strategy == "UNDERCUT" %}checked{% endif %}
+                               class="w-4 h-4 text-nebula-purple accent-[hsl(270,100%,65%)]"
+                               onchange="toggleUndercutField()">
+                        <div>
+                            <p class="text-sm font-medium text-cosmic-100">Undercut Low</p>
+                            <p class="text-xs text-cosmic-400">Go below TCG low by a percentage</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center gap-3 p-3 rounded-lg border border-cosmic-600 bg-cosmic-700/30 cursor-pointer transition-colors hover:border-nebula-purple/40 has-[:checked]:border-nebula-purple has-[:checked]:bg-nebula-purple/10">
+                        <input type="radio" name="strategy" value="MATCH_MARKET"
+                               {% if strategy == "MATCH_MARKET" %}checked{% endif %}
+                               class="w-4 h-4 text-nebula-purple accent-[hsl(270,100%,65%)]"
+                               onchange="toggleUndercutField()">
+                        <div>
+                            <p class="text-sm font-medium text-cosmic-100">Match Market</p>
+                            <p class="text-xs text-cosmic-400">Set price to market value</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Undercut percentage (shown when undercut selected) -->
+            <div id="undercut-field" class="mb-6 {% if strategy != 'UNDERCUT' %}hidden{% endif %}">
+                <label class="input-label" for="undercut_pct">Undercut Percentage</label>
+                <div class="flex items-center gap-2 max-w-xs">
+                    <input type="number" name="undercut_pct" id="undercut_pct"
+                           value="{{ undercut_pct if undercut_pct is defined else '5' }}"
+                           min="0" max="100" step="0.5"
+                           class="input-dark" placeholder="5">
+                    <span class="text-cosmic-400 text-sm">%</span>
+                </div>
+            </div>
+
+            <!-- Floor price -->
+            <div class="mb-6">
+                <label class="input-label" for="floor_price">Floor Price (optional)</label>
+                <div class="flex items-center gap-2 max-w-xs">
+                    <span class="text-cosmic-400 text-sm">$</span>
+                    <input type="text" name="floor_price" id="floor_price"
+                           value="{{ floor_price if floor_price is defined else '' }}"
+                           class="input-dark" placeholder="0.25">
+                </div>
+                <p class="text-xs text-cosmic-500 mt-1">Prices will never drop below this amount</p>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn-primary">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Preview Repriced Inventory
+            </button>
+        </form>
+    </div>
+
+    {% if results %}
+    <!-- Results preview -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="section-title">Preview</h2>
+            <span class="text-sm text-cosmic-400">{{ results|length }} items</span>
+        </div>
+
+        <div class="glow-card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="table-dark">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Condition</th>
+                            <th>Variant</th>
+                            <th class="text-right">Current Price</th>
+                            <th class="text-right">TCG Low</th>
+                            <th class="text-right">Market</th>
+                            <th class="text-right">New Price</th>
+                            <th class="text-right">Diff</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in results %}
+                        <tr>
+                            <td class="font-medium text-cosmic-100 max-w-[200px] truncate">
+                                {{ row.product_name or row.title or "N/A" }}
+                            </td>
+                            <td class="text-cosmic-300">{{ row.condition or "--" }}</td>
+                            <td class="text-cosmic-300">{{ row.product_line or "--" }}</td>
+                            <td class="text-right font-mono">
+                                {% if row.current_listed_price %}
+                                ${{ "%.2f"|format(row.current_listed_price|float) }}
+                                {% else %}
+                                <span class="text-cosmic-500">--</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-mono">
+                                {% if row.tcg_low %}
+                                ${{ "%.2f"|format(row.tcg_low|float) }}
+                                {% else %}
+                                <span class="text-cosmic-500">--</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-mono">
+                                {% if row.market_price %}
+                                ${{ "%.2f"|format(row.market_price|float) }}
+                                {% else %}
+                                <span class="text-cosmic-500">--</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-mono font-semibold text-cosmic-50">
+                                ${{ "%.2f"|format(row.new_price|float) }}
+                            </td>
+                            <td class="text-right font-mono font-semibold">
+                                {% if row.diff > 0 %}
+                                <span class="text-green-400">+${{ "%.2f"|format(row.diff|float) }}</span>
+                                {% elif row.diff < 0 %}
+                                <span class="text-red-400">-${{ "%.2f"|format((row.diff|float)|abs) }}</span>
+                                {% else %}
+                                <span class="text-cosmic-500">$0.00</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download button -->
+    <form action="/reprice/download" method="post">
+        <input type="hidden" name="original_csv" value="{{ original_csv|e }}">
+        <input type="hidden" name="strategy" value="{{ strategy }}">
+        <input type="hidden" name="undercut_pct" value="{{ undercut_pct if undercut_pct is defined else '5' }}">
+        <input type="hidden" name="floor_price" value="{{ floor_price if floor_price is defined else '' }}">
+        <button type="submit" class="btn-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Download Repriced CSV
+        </button>
+    </form>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Toggle undercut percentage field visibility
+    function toggleUndercutField() {
+        const undercutRadio = document.querySelector('input[value="UNDERCUT"]');
+        const undercutField = document.getElementById('undercut-field');
+        if (undercutRadio.checked) {
+            undercutField.classList.remove('hidden');
+        } else {
+            undercutField.classList.add('hidden');
+        }
+    }
+
+    // Drag and drop handling
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('csv-file');
+    const fileNameDisplay = document.getElementById('file-name');
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('border-nebula-purple', 'bg-nebula-purple/5');
+            dropZone.classList.remove('border-cosmic-600');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('border-nebula-purple', 'bg-nebula-purple/5');
+            dropZone.classList.add('border-cosmic-600');
+        });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            fileNameDisplay.textContent = files[0].name;
+            fileNameDisplay.classList.add('text-cosmic-200');
+            fileNameDisplay.classList.remove('text-cosmic-500');
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            fileNameDisplay.textContent = fileInput.files[0].name;
+            fileNameDisplay.classList.add('text-cosmic-200');
+            fileNameDisplay.classList.remove('text-cosmic-500');
+        }
+    });
+</script>
+{% endblock %}

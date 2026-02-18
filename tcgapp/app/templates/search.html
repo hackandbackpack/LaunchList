@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Search Cards - TCG Price Tracker{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <!-- Page header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gradient">Search Cards</h1>
+        <p class="text-sm text-cosmic-400 mt-1">Find singles across all supported games</p>
+    </div>
+
+    <!-- Search form -->
+    <form method="get" action="/search" class="glow-card p-4 mb-8">
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1">
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search by card name..."
+                    class="input-dark"
+                    autofocus
+                >
+            </div>
+            <div class="sm:w-48">
+                <select name="game" class="input-dark">
+                    <option value="">All Games</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.name }}" {% if game == cat.name %}selected{% endif %}>
+                        {{ cat.display_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-primary whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                Search
+            </button>
+        </div>
+    </form>
+
+    {% if query %}
+    <!-- Results header -->
+    <div class="flex items-center justify-between mb-4">
+        <p class="text-sm text-cosmic-400">
+            {% if total > 0 %}
+            Showing {{ ((page - 1) * 20) + 1 }}-{{ [page * 20, total]|min }} of {{ total }} results for
+            <span class="text-cosmic-200 font-medium">"{{ query }}"</span>
+            {% if game %}
+            in <span class="badge-{{ game }}">{{ game }}</span>
+            {% endif %}
+            {% else %}
+            No results for <span class="text-cosmic-200 font-medium">"{{ query }}"</span>
+            {% if game %}
+            in <span class="badge-{{ game }}">{{ game }}</span>
+            {% endif %}
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <!-- Results grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
+        {% for item in results %}
+        <a href="/card/{{ item.product.product_id }}" class="glow-card group block">
+            <!-- Card image -->
+            <div class="aspect-[3/4] bg-cosmic-700/30 rounded-t-[0.6875rem] overflow-hidden flex items-center justify-center">
+                {% if item.product.image_url %}
+                <img
+                    src="{{ item.product.image_url }}"
+                    alt="{{ item.product.name }}"
+                    class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                >
+                {% else %}
+                <svg class="w-12 h-12 text-cosmic-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                {% endif %}
+            </div>
+
+            <!-- Card details -->
+            <div class="p-3">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <span class="badge-{{ item.game }}">{{ item.game_display }}</span>
+                    {% if item.product.rarity %}
+                    <span class="text-[0.6875rem] text-cosmic-400 font-medium truncate">{{ item.product.rarity }}</span>
+                    {% endif %}
+                </div>
+
+                <h3 class="text-sm font-semibold text-cosmic-100 leading-tight mb-1 line-clamp-2 group-hover:text-nebula-purple transition-colors">
+                    {{ item.product.name }}
+                </h3>
+
+                {% if item.product.number %}
+                <p class="text-xs text-cosmic-500 mb-2">#{{ item.product.number }}</p>
+                {% endif %}
+
+                <div class="pt-2 border-t border-cosmic-600/30">
+                    {% if item.price and item.price.market_price %}
+                    <span class="text-lg font-bold text-cosmic-50 font-mono">${{ "%.2f"|format(item.price.market_price) }}</span>
+                    <span class="text-[0.6875rem] text-cosmic-500 ml-1">market</span>
+                    {% else %}
+                    <span class="text-sm text-cosmic-500">No price data</span>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <nav class="flex items-center justify-center gap-2 mt-8 mb-4">
+        {% if page > 1 %}
+        <a href="/search?q={{ query }}&game={{ game }}&page={{ page - 1 }}" class="btn-secondary text-sm px-3 py-1.5">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Previous
+        </a>
+        {% else %}
+        <span class="btn-secondary text-sm px-3 py-1.5 opacity-40 cursor-not-allowed">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Previous
+        </span>
+        {% endif %}
+
+        <span class="text-sm text-cosmic-400 px-3">
+            Page {{ page }} of {{ total_pages }}
+        </span>
+
+        {% if page < total_pages %}
+        <a href="/search?q={{ query }}&game={{ game }}&page={{ page + 1 }}" class="btn-secondary text-sm px-3 py-1.5">
+            Next
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </a>
+        {% else %}
+        <span class="btn-secondary text-sm px-3 py-1.5 opacity-40 cursor-not-allowed">
+            Next
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </span>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    {% elif query %}
+    <!-- No results state -->
+    <div class="glow-card p-10 text-center">
+        <svg class="w-12 h-12 mx-auto text-cosmic-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <h2 class="text-lg font-semibold text-cosmic-200 mb-1">No results found</h2>
+        <p class="text-sm text-cosmic-400 max-w-sm mx-auto">
+            No cards matched "{{ query }}". Try a different search term or check the game filter.
+        </p>
+    </div>
+
+    {% else %}
+    <!-- Default state before searching -->
+    <div class="glow-card p-10 text-center">
+        <svg class="w-12 h-12 mx-auto text-cosmic-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <h2 class="text-lg font-semibold text-cosmic-200 mb-1">Search for cards</h2>
+        <p class="text-sm text-cosmic-400 max-w-sm mx-auto">
+            Enter a card name above to find pricing data across Pokemon, Magic, One Piece, and Lorcana.
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

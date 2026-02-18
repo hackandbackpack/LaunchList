@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Sealed Products - TCG Price Tracker{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="section-title text-gradient">Sealed Products</h1>
+            <p class="section-subtitle">Track sealed product prices over the past week.</p>
+        </div>
+
+        <!-- Add sealed product form -->
+        <form method="post" action="/sealed/add" class="flex items-end gap-2">
+            <div>
+                <label for="product_id" class="input-label">Product ID</label>
+                <input
+                    type="number"
+                    id="product_id"
+                    name="product_id"
+                    required
+                    placeholder="TCGPlayer ID"
+                    class="input-dark w-40"
+                >
+            </div>
+            <div>
+                <label for="variant" class="input-label">Variant</label>
+                <input
+                    type="text"
+                    id="variant"
+                    name="variant"
+                    value="Normal"
+                    class="input-dark w-28"
+                >
+            </div>
+            <button type="submit" class="btn-primary whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add
+            </button>
+        </form>
+    </div>
+
+    <!-- Game filter tabs -->
+    <div class="flex flex-wrap gap-2 mb-6">
+        <a
+            href="/sealed"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {{ 'bg-nebula-purple/20 text-nebula-purple border border-nebula-purple/30' if not game_filter else 'text-cosmic-400 hover:text-cosmic-200 hover:bg-cosmic-700/50 border border-cosmic-600/30' }}"
+        >
+            All
+        </a>
+        {% set game_tabs = [
+            {"slug": "pokemon", "label": "Pokemon", "badge": "badge-pokemon"},
+            {"slug": "magic", "label": "MTG", "badge": "badge-magic"},
+            {"slug": "onepiece", "label": "One Piece", "badge": "badge-onepiece"},
+            {"slug": "lorcana", "label": "Lorcana", "badge": "badge-lorcana"},
+        ] %}
+        {% for tab in game_tabs %}
+            <a
+                href="/sealed?game={{ tab.slug }}"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {{ 'bg-nebula-purple/20 text-nebula-purple border border-nebula-purple/30' if game_filter == tab.slug else 'text-cosmic-400 hover:text-cosmic-200 hover:bg-cosmic-700/50 border border-cosmic-600/30' }}"
+            >
+                {{ tab.label }}
+            </a>
+        {% endfor %}
+    </div>
+
+    <!-- Sealed products table -->
+    {% if rows %}
+        <div class="glow-card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="table-dark">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            {% for day in days %}
+                                <th class="text-right">{{ day }}</th>
+                            {% endfor %}
+                            <th class="text-center">Trend</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <!-- Product name and game badge -->
+                            <td class="min-w-[200px]">
+                                <a href="/card/{{ row.product.product_id }}" class="hover:text-nebula-purple transition-colors">
+                                    <span class="font-medium text-cosmic-100 block">{{ row.product.name }}</span>
+                                </a>
+                                {% if row.game %}
+                                    <span class="badge-{{ row.game }} mt-1 inline-block">{{ row.game_display }}</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Daily prices (today through -7d) -->
+                            {% for i in range(row.daily_prices | length) %}
+                                <td class="text-right whitespace-nowrap">
+                                    {% if row.daily_prices[i] is not none %}
+                                        {% set price_val = row.daily_prices[i] %}
+                                        {# Compare to next day (previous in time) for color #}
+                                        {% if i + 1 < row.daily_prices | length and row.daily_prices[i + 1] is not none %}
+                                            {% if price_val > row.daily_prices[i + 1] %}
+                                                <span class="text-green-400 font-medium">${{ "%.2f"|format(price_val) }}</span>
+                                            {% elif price_val < row.daily_prices[i + 1] %}
+                                                <span class="text-red-400 font-medium">${{ "%.2f"|format(price_val) }}</span>
+                                            {% else %}
+                                                <span class="text-cosmic-200">${{ "%.2f"|format(price_val) }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-cosmic-200">${{ "%.2f"|format(price_val) }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-cosmic-500">--</span>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+
+                            <!-- Trend indicator -->
+                            <td class="text-center">
+                                {% if row.trend == "up" %}
+                                    <span class="status-up">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+                                        </svg>
+                                        Up
+                                    </span>
+                                {% elif row.trend == "down" %}
+                                    <span class="status-down">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                        Down
+                                    </span>
+                                {% else %}
+                                    <span class="status-neutral">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4"/>
+                                        </svg>
+                                        Flat
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Remove action -->
+                            <td class="text-center">
+                                <form method="post" action="/sealed/remove" class="inline">
+                                    <input type="hidden" name="tracking_id" value="{{ row.tracking_id }}">
+                                    <button type="submit" class="btn-danger text-xs px-3 py-1.5" title="Remove from tracking">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                        Remove
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <!-- Empty state -->
+        <div class="glow-card p-12 text-center">
+            <svg class="w-16 h-16 mx-auto mb-4 text-cosmic-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            <h3 class="text-lg font-semibold text-cosmic-200 mb-2">No sealed products tracked</h3>
+            <p class="text-cosmic-400 max-w-md mx-auto">
+                Start tracking sealed products by entering a TCGPlayer product ID above.
+                You can find product IDs by searching for products on the
+                <a href="/search" class="text-nebula-purple hover:underline">search page</a>.
+            </p>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

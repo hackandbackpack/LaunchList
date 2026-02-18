@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Watchlist - TCG Price Tracker{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <!-- Page header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gradient">Watchlist</h1>
+            <p class="text-sm text-cosmic-400 mt-1">Track price movements on cards you care about</p>
+        </div>
+        {% if rows %}
+        <span class="text-sm text-cosmic-400">{{ rows|length }} item{{ "s" if rows|length != 1 else "" }}</span>
+        {% endif %}
+    </div>
+
+    {% if rows %}
+    <div class="glow-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table-dark">
+                <thead>
+                    <tr>
+                        <th>Card Name</th>
+                        <th>Game</th>
+                        <th>Variant</th>
+                        <th class="text-right">Current Price</th>
+                        <th>Alert Status</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>
+                            {% if row.product %}
+                            <a href="/card/{{ row.product.product_id }}" class="font-medium text-cosmic-100 hover:text-nebula-purple transition-colors">
+                                {{ row.product.name }}
+                            </a>
+                            {% else %}
+                            <span class="text-cosmic-500">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row.game %}
+                            <span class="badge-{{ row.game }}">{{ row.game }}</span>
+                            {% else %}
+                            <span class="text-cosmic-500">--</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-cosmic-300">{{ row.item.variant }}</td>
+                        <td class="text-right font-mono font-medium">
+                            {% if row.price and row.price.market_price %}
+                            ${{ "%.2f"|format(row.price.market_price) }}
+                            {% else %}
+                            <span class="text-cosmic-500">--</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row.alerts %}
+                                {% set active_alerts = row.alerts|selectattr("triggered_at", "none")|list %}
+                                {% set triggered_alerts = row.alerts|rejectattr("triggered_at", "none")|list %}
+                                {% if triggered_alerts %}
+                                <span class="status-down">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                                    </svg>
+                                    {{ triggered_alerts|length }} triggered
+                                </span>
+                                {% elif active_alerts %}
+                                <span class="status-up">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    {{ active_alerts|length }} active
+                                </span>
+                                {% else %}
+                                <span class="status-neutral">Configured</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-cosmic-500 text-xs">No alerts</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <button type="button"
+                                        onclick="toggleAlertForm({{ row.item.id }})"
+                                        class="btn-secondary text-xs px-3 py-1.5">
+                                    Configure Alert
+                                </button>
+                                <form action="/watchlist/{{ row.item.id }}/remove" method="post" class="inline">
+                                    <button type="submit" class="btn-danger text-xs px-3 py-1.5">Remove</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Inline alert configuration form (hidden by default) -->
+                    <tr id="alert-form-{{ row.item.id }}" class="hidden">
+                        <td colspan="6" class="bg-cosmic-800/50 border-l-2 border-nebula-purple/40">
+                            <form action="/watchlist/{{ row.item.id }}/alert" method="post" class="p-4">
+                                <p class="text-sm font-medium text-cosmic-200 mb-3">New Alert for {{ row.product.name if row.product else "Unknown" }}</p>
+                                <div class="flex flex-wrap items-end gap-4">
+                                    <div>
+                                        <label class="input-label" for="threshold-{{ row.item.id }}">Threshold %</label>
+                                        <input type="number" name="threshold_pct" id="threshold-{{ row.item.id }}"
+                                               value="10" min="1" max="100" step="1"
+                                               class="input-dark w-24" required>
+                                    </div>
+                                    <div>
+                                        <label class="input-label" for="window-{{ row.item.id }}">Time Window</label>
+                                        <select name="time_window" id="window-{{ row.item.id }}" class="input-dark w-28">
+                                            <option value="24h">24 hours</option>
+                                            <option value="72h">72 hours</option>
+                                            <option value="7d">7 days</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="input-label" for="direction-{{ row.item.id }}">Direction</label>
+                                        <select name="direction" id="direction-{{ row.item.id }}" class="input-dark w-28">
+                                            <option value="both">Both</option>
+                                            <option value="up">Up only</option>
+                                            <option value="down">Down only</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button type="submit" class="btn-primary text-xs px-3 py-2">Save Alert</button>
+                                        <button type="button" onclick="toggleAlertForm({{ row.item.id }})"
+                                                class="btn-secondary text-xs px-3 py-2">Cancel</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty state -->
+    <div class="glow-card p-12 text-center">
+        <svg class="w-16 h-16 mx-auto text-cosmic-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+        </svg>
+        <h2 class="text-xl font-semibold text-cosmic-200 mb-2">Watchlist is empty</h2>
+        <p class="text-cosmic-400 text-sm max-w-md mx-auto">
+            Search for cards and add them to your watchlist to track their price movements over time.
+        </p>
+        <a href="/search" class="btn-primary mt-6 inline-flex">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            Search Cards
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleAlertForm(itemId) {
+        const formRow = document.getElementById('alert-form-' + itemId);
+        formRow.classList.toggle('hidden');
+    }
+</script>
+{% endblock %}

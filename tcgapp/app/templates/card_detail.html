@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - TCG Price Tracker{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <!-- Breadcrumb -->
+    <nav class="mb-6 text-sm text-cosmic-400">
+        <a href="/" class="hover:text-cosmic-200 transition-colors">Home</a>
+        <span class="mx-2">/</span>
+        <a href="/search?game={{ game }}" class="hover:text-cosmic-200 transition-colors">{{ category.display_name if category else "Cards" }}</a>
+        <span class="mx-2">/</span>
+        <span class="text-cosmic-200">{{ product.name }}</span>
+    </nav>
+
+    <!-- Two-column layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+
+        <!-- Left column: Card image -->
+        <div class="lg:col-span-1">
+            <div class="glow-card p-4">
+                {% if product.image_url %}
+                    <img
+                        src="{{ product.image_url }}"
+                        alt="{{ product.name }}"
+                        class="w-full rounded-lg object-contain max-h-[500px]"
+                        loading="lazy"
+                    >
+                {% else %}
+                    <div class="w-full aspect-[2.5/3.5] rounded-lg bg-cosmic-700 flex items-center justify-center">
+                        <div class="text-center px-4">
+                            <svg class="w-16 h-16 mx-auto mb-3 text-cosmic-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="text-cosmic-400 text-sm font-medium">{{ product.name }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right column: Details -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Product heading -->
+            <div>
+                <div class="flex flex-wrap items-center gap-3 mb-2">
+                    {% if category %}
+                        <span class="badge-{{ game }}">{{ category.display_name }}</span>
+                    {% endif %}
+                    {% if product.rarity %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cosmic-700 text-cosmic-200 border border-cosmic-600">
+                            {{ product.rarity }}
+                        </span>
+                    {% endif %}
+                    {% if product.number %}
+                        <span class="text-sm text-cosmic-400">#{{ product.number }}</span>
+                    {% endif %}
+                </div>
+                <h1 class="text-3xl font-bold text-cosmic-50">{{ product.name }}</h1>
+                {% if product.group %}
+                    <p class="text-sm text-cosmic-400 mt-1">{{ product.group.name }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Variant price table -->
+            <div class="glow-card overflow-hidden">
+                <div class="px-5 py-4 border-b border-cosmic-600/50">
+                    <h2 class="text-lg font-semibold text-cosmic-100">Market Prices</h2>
+                </div>
+                {% if variants %}
+                    <div class="overflow-x-auto">
+                        <table class="table-dark">
+                            <thead>
+                                <tr>
+                                    <th>Printing</th>
+                                    <th>Condition</th>
+                                    <th class="text-right">Market</th>
+                                    <th class="text-right">Low</th>
+                                    <th class="text-right">Mid</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for variant in variants %}
+                                <tr>
+                                    <td class="font-medium text-cosmic-100">{{ variant.variant }}</td>
+                                    <td>
+                                        {% set matching_sku = namespace(condition="--") %}
+                                        {% for sku in skus %}
+                                            {% if sku.variant == variant.variant %}
+                                                {% set matching_sku.condition = sku.condition %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {{ matching_sku.condition }}
+                                    </td>
+                                    <td class="text-right font-semibold text-cosmic-50">
+                                        {% if variant.market_price is not none %}
+                                            ${{ "%.2f"|format(variant.market_price) }}
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">
+                                        {% if variant.low_price is not none %}
+                                            ${{ "%.2f"|format(variant.low_price) }}
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">
+                                        {% if variant.mid_price is not none %}
+                                            ${{ "%.2f"|format(variant.mid_price) }}
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="px-5 py-8 text-center text-cosmic-400">
+                        <p>No price data available yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex flex-wrap gap-3">
+                <form method="post" action="/watchlist/add">
+                    <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                    <input type="hidden" name="variant" value="{{ variants[0].variant if variants else 'Normal' }}">
+                    <button type="submit" class="btn-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Add to Watchlist
+                    </button>
+                </form>
+
+                <a
+                    href="https://www.tcgplayer.com/product/{{ product.product_id }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn-secondary"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                    View on TCGPlayer
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Price history chart -->
+    <div class="glow-card p-6">
+        <h2 class="text-lg font-semibold text-cosmic-100 mb-4">Price History</h2>
+        {% if chart_data %}
+            <div class="relative" style="height: 360px;">
+                <canvas id="priceChart"></canvas>
+            </div>
+        {% else %}
+            <div class="py-12 text-center text-cosmic-400">
+                <svg class="w-12 h-12 mx-auto mb-3 text-cosmic-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                <p>No price history recorded yet. Check back after prices have been tracked for a few days.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const chartData = {{ chart_data | tojson }};
+</script>
+<script src="/static/js/charts.js"></script>
+{% endblock %}

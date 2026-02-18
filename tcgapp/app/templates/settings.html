@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - TCG Price Tracker{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <!-- Page header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gradient">Settings</h1>
+        <p class="text-sm text-cosmic-400 mt-1">Manage tracked cards, API configuration, and data refresh</p>
+    </div>
+
+    <!-- API Status card -->
+    <div class="glow-card p-6 mb-8">
+        <h2 class="text-lg font-semibold text-cosmic-100 mb-4">API Status</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+                <span class="input-label">API Key</span>
+                <p class="text-sm text-cosmic-200 font-mono mt-1">{{ masked_key }}</p>
+            </div>
+            <div>
+                <span class="input-label">Total Products Tracked</span>
+                <p class="text-2xl font-bold text-cosmic-50 mt-1">{{ "{:,}".format(total_products) }}</p>
+            </div>
+            <div>
+                <span class="input-label">Sealed Products</span>
+                <p class="text-2xl font-bold text-cosmic-50 mt-1">{{ "{:,}".format(sealed_count) }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refresh prices -->
+    <div class="glow-card p-6 mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-cosmic-100 mb-1">Refresh All Prices</h2>
+                <p class="text-sm text-cosmic-400">Fetch the latest prices from JustTCG for all tracked products. This may take a moment.</p>
+            </div>
+            <form action="/settings/refresh" method="post" id="refresh-form">
+                <button type="submit" id="refresh-btn" class="btn-primary whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span id="refresh-text">Refresh Prices</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tracked cards per game -->
+    {% if tracked %}
+    <div class="mb-8">
+        <h2 class="section-title">Tracked Cards</h2>
+
+        {% for group in tracked %}
+        {% if group.count > 0 %}
+        <div class="glow-card overflow-hidden mb-4">
+            <div class="flex items-center justify-between p-4 border-b border-cosmic-600/30">
+                <div class="flex items-center gap-3">
+                    <span class="badge-{{ group.category.name }}">{{ group.category.name }}</span>
+                    <span class="text-sm font-medium text-cosmic-200">{{ group.category.display_name }}</span>
+                </div>
+                <span class="text-xs text-cosmic-400">{{ group.count }} product{{ "s" if group.count != 1 else "" }}</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="table-dark">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Rarity</th>
+                            <th>Number</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in group.products %}
+                        <tr>
+                            <td>
+                                <a href="/card/{{ product.product_id }}" class="font-medium text-cosmic-100 hover:text-nebula-purple transition-colors">
+                                    {{ product.name }}
+                                </a>
+                            </td>
+                            <td class="text-cosmic-300">{{ product.rarity or "--" }}</td>
+                            <td class="text-cosmic-300 font-mono text-xs">{{ product.number or "--" }}</td>
+                            <td class="text-right">
+                                <form action="/settings/cards/remove" method="post" class="inline"
+                                      onsubmit="return confirm('Remove {{ product.name|replace("'", "\\'") }} from tracking?')">
+                                    <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                                    <button type="submit" class="btn-danger text-xs px-3 py-1.5">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- Empty state for tracked cards -->
+    <div class="glow-card p-12 text-center">
+        <svg class="w-16 h-16 mx-auto text-cosmic-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+        <h2 class="text-xl font-semibold text-cosmic-200 mb-2">No tracked cards</h2>
+        <p class="text-cosmic-400 text-sm max-w-md mx-auto">
+            Use the search to find and start tracking cards.
+        </p>
+        <a href="/search" class="btn-primary mt-6 inline-flex">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            Search Cards
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Loading state for refresh button
+    const refreshForm = document.getElementById('refresh-form');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const refreshText = document.getElementById('refresh-text');
+
+    if (refreshForm) {
+        refreshForm.addEventListener('submit', () => {
+            refreshBtn.disabled = true;
+            refreshBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            refreshText.textContent = 'Refreshing...';
+
+            // Add spinner next to text
+            const spinner = document.createElement('span');
+            spinner.className = 'spinner spinner-sm';
+            refreshBtn.insertBefore(spinner, refreshBtn.firstChild);
+
+            // Remove the SVG icon
+            const svg = refreshBtn.querySelector('svg');
+            if (svg) svg.remove();
+        });
+    }
+</script>
+{% endblock %}
